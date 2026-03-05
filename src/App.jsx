@@ -111,6 +111,7 @@ const LandingPage = () => (
 function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [credits, setCredits] = useState(() => {
     // Cache'den başla (hız için)
     const saved = localStorage.getItem('user_credits');
@@ -122,6 +123,14 @@ function App() {
 
   useEffect(() => {
     let unsubFirestore = () => { };
+
+    // Bakım modunu dinle
+    const settingsRef = doc(db, 'settings', 'site_settings');
+    const unsubSettings = onSnapshot(settingsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setMaintenanceMode(docSnap.data().maintenanceMode || false);
+      }
+    });
 
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -178,6 +187,7 @@ function App() {
     return () => {
       unsubAuth();
       unsubFirestore();
+      unsubSettings();
     };
   }, []);
 
@@ -213,6 +223,33 @@ function App() {
     isAdmin: user?.email === ADMIN_EMAIL,
     isBanned: isBanned,
   };
+
+  if (maintenanceMode && user?.email !== ADMIN_EMAIL) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+          <Route path="*" element={
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+              <div className="gradient-bg"></div>
+              <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px', width: '90%' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🛠️</div>
+                <h1 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Sistem Bakımda</h1>
+                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem', fontSize: '1.1rem' }}>
+                  Sitemizde şu an planlı bir kalite ve performans güncellemesi yapılmaktadır. En kısa sürede yenilenmiş haliyle geri döneceğiz.
+                </p>
+                {user ? (
+                  <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
+                ) : (
+                  <Link to="/login" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>Yönetici Girişi</Link>
+                )}
+              </div>
+            </div>
+          } />
+        </Routes>
+      </Router>
+    );
+  }
 
   if (authLoading) {
     return (

@@ -34,6 +34,7 @@ const AdminPanel = ({ user, onLogout }) => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordMessage, setPasswordMessage] = useState('');
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
 
     useEffect(() => {
         if (!user) return;
@@ -69,12 +70,20 @@ const AdminPanel = ({ user, onLogout }) => {
             setBlacklist(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
 
+        // 6. Bakım Modu durumunu çek
+        const unsubSettings = onSnapshot(doc(db, 'settings', 'site_settings'), (docSnap) => {
+            if (docSnap.exists()) {
+                setMaintenanceMode(docSnap.data().maintenanceMode || false);
+            }
+        });
+
         return () => {
             unsubUsers();
             unsubApps();
             unsubTests();
             unsubMessages();
             unsubBlacklist();
+            unsubSettings();
         };
     }, [user]);
 
@@ -573,8 +582,32 @@ const AdminPanel = ({ user, onLogout }) => {
                     )}
 
                     {activeTab === 'settings' && (
-                        <div style={{ maxWidth: '500px' }}>
-                            <h3 style={{ marginBottom: '1.5rem' }}>Yönetici Ayarları</h3>
+                        <div style={{ maxWidth: '600px' }}>
+                            {/* Bakım Modu Kartı */}
+                            <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', marginBottom: '2rem', borderLeft: maintenanceMode ? '4px solid #f87171' : '4px solid #4ade80' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                    <div>
+                                        <h3 style={{ color: maintenanceMode ? '#f87171' : '#4ade80', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <ShieldAlert size={20} />
+                                            {maintenanceMode ? 'Sistem Bakımda (Kapalı)' : 'Sistem Yayında (Açık)'}
+                                        </h3>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            {maintenanceMode
+                                                ? "Şu anda adminler hariç kimse siteye giremez veya işlem yapamaz. Sadece bakım erkanı görünür."
+                                                : "Site şu an tüm kullanıcılara açık ve normal şekilde çalışıyor."}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={toggleMaintenanceMode}
+                                        className={maintenanceMode ? "btn-outline" : "btn-primary"}
+                                        style={{ borderColor: maintenanceMode ? '#f87171' : '', color: maintenanceMode ? '#f87171' : '' }}
+                                    >
+                                        {maintenanceMode ? 'Bakım Modunu Kapat' : 'Bakım Modunu Aç'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h3 style={{ marginBottom: '1.5rem' }}>Yönetici Şifre Yenileme</h3>
                             <form onSubmit={handlePasswordChange} className="glass" style={{ padding: '2rem', borderRadius: '1rem' }}>
                                 <div className="form-group">
                                     <label>Yeni Yönetici Şifresi</label>
