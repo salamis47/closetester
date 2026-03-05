@@ -277,32 +277,33 @@ function App() {
     );
   }
 
+  // Eğer bakım modu aktifse ve admin değilse her durumda Bakım Ekranını göster (Route bazlı değil, uygulama bazlı koruma)
+  if (maintenanceMode && !isActuallyAdmin) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+          <Route path="*" element={<MaintenanceScreen />} />
+        </Routes>
+      </Router>
+    );
+  }
+
   return (
     <Router>
       <Routes>
-        {/* Bakım Modu Koruması */}
-        {maintenanceMode && !isActuallyAdmin ? (
-          <>
-            <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
-            <Route path="*" element={<MaintenanceScreen />} />
-          </>
-        ) : (
-          <>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
-            <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
-            <Route path="/dashboard" element={user ? <Dashboard {...sharedProps} /> : <Navigate to="/login" />} />
-            <Route path="/test-pool" element={user ? <TestPool {...sharedProps} /> : <Navigate to="/login" />} />
-            <Route path="/add-app" element={user ? <AddApp {...sharedProps} /> : <Navigate to="/login" />} />
-            <Route path="/settings" element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />} />
-            <Route path="/chat" element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />} />
-            <Route path="/admin" element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+        <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+        <Route path="/dashboard" element={user ? <Dashboard {...sharedProps} /> : <Navigate to="/login" />} />
+        <Route path="/test-pool" element={user ? <TestPool {...sharedProps} /> : <Navigate to="/login" />} />
+        <Route path="/add-app" element={user ? <AddApp {...sharedProps} /> : <Navigate to="/login" />} />
+        <Route path="/settings" element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />} />
+        <Route path="/chat" element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />} />
+        <Route path="/admin" element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
 
-            {/* Ban ve Bekleme Ekranları */}
-            {isBanned && <Route path="*" element={<Navigate to="/" />} />}
-            {blacklistData && <Route path="*" element={<Navigate to="/" />} />}
-          </>
-        )}
+        {/* Ban ve Silinmiş Hesap Koruması */}
+        {(isBanned || blacklistData) && <Route path="*" element={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>Hesabınız askıya alınmıştır.</div>} />}
       </Routes>
     </Router>
   );
