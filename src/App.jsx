@@ -112,6 +112,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [credits, setCredits] = useState(() => {
     // Cache'den başla (hız için)
     const saved = localStorage.getItem('user_credits');
@@ -193,8 +194,10 @@ function App() {
 
   const handleLogin = (firebaseUser) => setUser(firebaseUser);
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await logOut();
     setUser(null);
+    setTimeout(() => setIsLoggingOut(false), 800);
   };
 
   const handleAddCredits = async (amount) => {
@@ -305,7 +308,7 @@ function App() {
     <Router>
       <Routes>
         {/* Bakım modu aktifse ve kullanıcı admin değilse: sadece /admin-login açık, geri kalan her şey bakım ekranı */}
-        {maintenanceMode && user?.email !== ADMIN_EMAIL ? (
+        {(maintenanceMode || isLoggingOut) && user?.email !== ADMIN_EMAIL ? (
           <>
             <Route path="/admin-login" element={<Login onLogin={handleLogin} />} />
             <Route path="*" element={<MaintenanceScreen />} />
