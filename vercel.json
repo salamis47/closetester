@@ -1,7 +1,7 @@
 {
     "rewrites": [
         {
-            "source": "/((?!api|maintenance.html|admin-login|static|.*\\..*).*)",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]
