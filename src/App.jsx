@@ -98,7 +98,22 @@ const LandingPage = () => (
           <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
             <li style={{ marginBottom: '0.5rem' }}>Test sürecine katılarak uygulamayı telefonunuza indirdiğinizde, 14 gün boyunca <strong>her gün</strong> panele girerek AI tarafından doğrulanan bir onay (kanıt) göndermelisiniz.</li>
             <li style={{ marginBottom: '0.5rem' }}>Sistemdeki Yapay Zeka anlık olarak kontrolü sağlar ve o günkü ilerlemenizi onaylayıp günlük ödülünüzü yansıtır.</li>
+            <li><strong>Hatırlatma:</strong> 14 günü tamamlamadan testi bırakmak veya uygulamayı silmek ceza puanı almanıza veya sistemden uzaklaştırılmanıza neden olabilir.</li>
             <li>14 gün kesintisiz tamamlandığında büyük ödül hesaba geçer ve uygulama sahibi Play Store Console'daki zorunluluğu güvenle doldurmuş olur.</li>
+          </ul>
+        </div>
+
+        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', borderLeft: '4px solid #f87171' }}>
+          <h3 style={{ color: '#f87171', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
+            🚫 Adil Kullanım ve Ceza Sistemi
+          </h3>
+          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
+            Topluluğun güvenliğini ve yardımlaşmanın sürekliliğini korumak amacıyla katı bir <strong>Anti-Suistimal</strong> politikası uygulanır:
+          </p>
+          <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Hesap Silme Cezası:</strong> Sistemdeki kuralları aşmak veya verileri temizlemek amacıyla hesabını silen kullanıcılar 14 gün boyunca aynı bilgilerle (e-posta vb.) tekrar kayıt olamazlar.</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Yanıltıcı Kanıtlar:</strong> Sahte ekran görüntüsü veya alakasız kanıt gönderen hesaplar, admin incelemesi sonrası kalıcı olarak yasaklanabilir.</li>
+            <li><strong>Dürüstlük İlkesi:</strong> Bu platform geliştiricilerin birbirine zaman ayırdığı bir yerdir. Başkasının emeğine saygı göstermeyenler topluluktan uzaklaştırılır.</li>
           </ul>
         </div>
       </section>
