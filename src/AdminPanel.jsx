@@ -4,7 +4,7 @@ import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, wher
 import {
     ShieldAlert, Users, LayoutDashboard, PlayCircle, PlusCircle,
     MessageSquare, Settings, LogOut, Search, Trash2,
-    CheckCircle2, XCircle, DollarSign, TrendingUp, BarChart3, Clock
+    CheckCircle2, XCircle, DollarSign, TrendingUp, BarChart3, Clock, LifeBuoy
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -20,16 +20,19 @@ const AdminPanel = ({ user, onLogout }) => {
     const [tests, setTests] = useState([]);
     const [blacklist, setBlacklist] = useState([]);
     const [messages, setMessages] = useState([]);
+    const [supportTickets, setSupportTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(null); // Silinen mesajın ID'sini tutar
     const [confirmDeleteId, setConfirmDeleteId] = useState(null); // Onay bekleyen mesaj ID
     const [confirmDeleteUserId, setConfirmDeleteUserId] = useState(null); // Onay bekleyen kullanıcı ID
+    const [confirmDeleteTicketId, setConfirmDeleteTicketId] = useState(null); // Onay bekleyen destek talebi ID
     const [deleteFeedback, setDeleteFeedback] = useState(''); // Silme geri bildirimi
     const [stats, setStats] = useState({
         totalUsers: 0,
         totalApps: 0,
         totalTests: 0,
-        totalCredits: 0
+        totalCredits: 0,
+        onlineUsers: 0
     });
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -43,8 +46,18 @@ const AdminPanel = ({ user, onLogout }) => {
         const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
             const userData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setUsers(userData);
+
+            // Online kullanıcıları hesapla (Son 10 dk içindeaktif olanlar)
+            const tenMinAgo = Date.now() - 10 * 60 * 1000;
+            const onlineCount = userData.filter(u => u.lastSeen?.toDate()?.getTime() > tenMinAgo).length;
+
             const totalCredits = userData.reduce((acc, u) => acc + (u.credits || 0), 0);
-            setStats(prev => ({ ...prev, totalUsers: snapshot.size, totalCredits: Number(totalCredits).toFixed(2) }));
+            setStats(prev => ({
+                ...prev,
+                totalUsers: snapshot.size,
+                totalCredits: Number(totalCredits).toFixed(2),
+                onlineUsers: onlineCount
+            }));
         });
 
         // 2. Tüm uygulamaları çek
@@ -70,7 +83,12 @@ const AdminPanel = ({ user, onLogout }) => {
             setBlacklist(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
 
-        // 6. Bakım Modu durumunu çek
+        // 6. Destek taleplerini çek
+        const unsubSupport = onSnapshot(query(collection(db, 'support_tickets'), orderBy('createdAt', 'desc')), (snapshot) => {
+            setSupportTickets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+
+        // 7. Bakım Modu durumunu çek
         const unsubSettings = onSnapshot(doc(db, 'settings', 'site_settings'), (docSnap) => {
             if (docSnap.exists()) {
                 setMaintenanceMode(docSnap.data().maintenanceMode || false);
@@ -83,6 +101,7 @@ const AdminPanel = ({ user, onLogout }) => {
             unsubTests();
             unsubMessages();
             unsubBlacklist();
+            unsubSupport();
             unsubSettings();
         };
     }, [user]);
@@ -287,6 +306,47 @@ const AdminPanel = ({ user, onLogout }) => {
         }
     };
 
+    const handleResolveTicket = async (ticketId, currentStatus) => {
+        try {
+            await updateDoc(doc(db, 'support_tickets', ticketId), {
+                status: currentStatus === 'open' ? 'resolved' : 'open'
+            });
+        } catch (error) {
+            console.error("Talep güncellenirken hata:", error);
+        }
+    };
+
+    const handleDeleteTicket = async (ticketId) => {
+        if (!ticketId || isDeleting) return;
+
+        setIsDeleting(ticketId);
+        setDeleteFeedback('Siliniyor...');
+
+        try {
+            await deleteDoc(doc(db, 'support_tickets', ticketId));
+            setDeleteFeedback('Talep başarıyla silindi.');
+            setConfirmDeleteTicketId(null);
+            setTimeout(() => setDeleteFeedback(''), 3000);
+        } catch (error) {
+            console.error("Silme hatası:", error);
+            setDeleteFeedback('Hata: ' + error.message);
+            setTimeout(() => setDeleteFeedback(''), 5000);
+        } finally {
+            setIsDeleting(null);
+        }
+    };
+
+    const formatDate = (timestamp) => {
+        if (!timestamp) return 'Az önce';
+        try {
+            if (timestamp.toDate) return timestamp.toDate().toLocaleString();
+            if (timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleString();
+            return new Date(timestamp).toLocaleString();
+        } catch (e) {
+            return 'Az önce';
+        }
+    };
+
     return (
         <div className="dashboard-layout">
             <div className="gradient-bg"></div>
@@ -323,6 +383,11 @@ const AdminPanel = ({ user, onLogout }) => {
                         <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Toplam Dolaşımdaki Kredi</div>
                         <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.totalCredits}</div>
                     </div>
+                    <div className="feature-card glass" style={{ borderLeft: '4px solid #4ade80' }}>
+                        <Users size={24} color="#4ade80" style={{ marginBottom: '1rem' }} />
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Şu An Online</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#4ade80' }}>{stats.onlineUsers}</div>
+                    </div>
                 </div>
 
                 {/* Sekme Menüsü */}
@@ -354,6 +419,13 @@ const AdminPanel = ({ user, onLogout }) => {
                         style={{ flex: 1, border: 'none', padding: '0.75rem' }}
                     >
                         Cezalar
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('support')}
+                        className={activeTab === 'support' ? 'btn-primary' : 'btn-outline'}
+                        style={{ flex: 1, border: 'none', padding: '0.75rem' }}
+                    >
+                        Destek Talepleri ({supportTickets.filter(t => t.status === 'open').length})
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
@@ -401,8 +473,13 @@ const AdminPanel = ({ user, onLogout }) => {
                                         {users.map(u => (
                                             <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                                                 <td style={{ padding: '1rem' }}>
-                                                    {u.displayName || 'İsimsiz'}
-                                                    {u.isBanned && <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', background: '#f87171', color: 'white', padding: '2px 4px', borderRadius: '4px' }}>YASAKLI</span>}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        {u.lastSeen?.toDate()?.getTime() > (Date.now() - 10 * 60 * 1000) &&
+                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80' }} title="Online" />
+                                                        }
+                                                        {u.displayName || 'İsimsiz'}
+                                                        {u.isBanned && <span style={{ fontSize: '0.65rem', background: '#f87171', color: 'white', padding: '2px 4px', borderRadius: '4px' }}>YASAKLI</span>}
+                                                    </div>
                                                 </td>
                                                 <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{u.email}</td>
                                                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>{Number(u.credits || 0).toFixed(2)}</td>
@@ -496,7 +573,7 @@ const AdminPanel = ({ user, onLogout }) => {
                                             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
                                                 {msg.displayName || msg.userName || 'İsimsiz'}
                                                 <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                                                    ({msg.createdAt ? new Date(msg.createdAt.seconds * 1000).toLocaleString() : 'Tarih Bilgisi Yok'})
+                                                    ({formatDate(msg.createdAt)})
                                                 </span>
                                             </div>
                                             <div style={{ fontSize: '0.9rem' }}>{msg.text}</div>
@@ -511,7 +588,7 @@ const AdminPanel = ({ user, onLogout }) => {
                                                         disabled={isDeleting === msg.id}
                                                         style={{ background: '#ef4444', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
                                                     >
-                                                        EVET SİL
+                                                        {isDeleting === msg.id ? 'SİLİNİYOR...' : 'EVET SİL'}
                                                     </button>
                                                     <button
                                                         onClick={() => setConfirmDeleteId(null)}
@@ -599,6 +676,106 @@ const AdminPanel = ({ user, onLogout }) => {
                                         })}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'support' && (
+                        <div>
+                            <h3 style={{ marginBottom: '1.5rem' }}>Destek Talepleri</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {supportTickets.map(t => (
+                                    <div key={t.id} className="glass" style={{
+                                        padding: '1.5rem',
+                                        borderRadius: '1.25rem',
+                                        border: t.status === 'open' ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(255,255,255,0.05)'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                                    <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{t.subject}</span>
+                                                    <span style={{
+                                                        fontSize: '0.75rem',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '1rem',
+                                                        background: t.status === 'open' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(74, 222, 128, 0.1)',
+                                                        color: t.status === 'open' ? '#fbbf24' : '#4ade80'
+                                                    }}>
+                                                        {t.status === 'open' ? 'Bekliyor' : 'Çözüldü'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                    Gönderen: <strong>{t.userName}</strong> ({t.email})
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                {formatDate(t.createdAt)}
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            padding: '1rem',
+                                            background: 'rgba(255,255,255,0.03)',
+                                            borderRadius: '0.75rem',
+                                            marginBottom: '1rem',
+                                            whiteSpace: 'pre-wrap',
+                                            fontSize: '0.95rem',
+                                            lineHeight: '1.6'
+                                        }}>
+                                            {t.message}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                            <button
+                                                onClick={() => handleResolveTicket(t.id, t.status)}
+                                                className="btn-outline"
+                                                style={{
+                                                    borderColor: t.status === 'open' ? '#4ade80' : '#fbbf24',
+                                                    color: t.status === 'open' ? '#4ade80' : '#fbbf24',
+                                                    padding: '0.4rem 0.8rem',
+                                                    fontSize: '0.8rem'
+                                                }}
+                                            >
+                                                {t.status === 'open' ? 'Çözüldü Yap' : 'Bekliyor Yap'}
+                                            </button>
+
+                                            {confirmDeleteTicketId === t.id ? (
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button
+                                                        onClick={() => handleDeleteTicket(t.id)}
+                                                        style={{ background: '#f87171', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 'bold' }}
+                                                        disabled={isDeleting === t.id}
+                                                    >
+                                                        {isDeleting === t.id ? 'SİLİNİYOR...' : 'EVET SİL'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmDeleteTicketId(null)}
+                                                        style={{ background: 'rgba(255,255,255,0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', fontSize: '0.75rem' }}
+                                                    >
+                                                        İPTAL
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setConfirmDeleteTicketId(t.id)}
+                                                    className="btn-outline"
+                                                    style={{
+                                                        borderColor: '#f87171',
+                                                        color: '#f87171',
+                                                        padding: '0.4rem 0.8rem',
+                                                        fontSize: '0.8rem'
+                                                    }}
+                                                >
+                                                    Sil
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                {supportTickets.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                                        <LifeBuoy size={48} style={{ marginBottom: '1rem', opacity: 0.2 }} />
+                                        <p>Henüz destek talebi bulunmuyor.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

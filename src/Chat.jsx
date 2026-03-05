@@ -7,7 +7,7 @@ import Sidebar from './Sidebar';
 
 // Yerel Sidebar kaldırıldı
 
-const Chat = ({ user, onLogout, isAdmin }) => {
+const Chat = ({ user, onLogout, isAdmin, profile }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [isBanned, setIsBanned] = useState(false);
@@ -85,7 +85,7 @@ const Chat = ({ user, onLogout, isAdmin }) => {
             await addDoc(collection(db, 'messages'), {
                 text: processedText,
                 uid: user.uid,
-                displayName: user.displayName || user.email.split('@')[0],
+                displayName: profile?.name || user.displayName || user.email.split('@')[0],
                 createdAt: serverTimestamp()
             });
             setNewMessage('');

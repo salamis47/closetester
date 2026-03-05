@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, PlayCircle, PlusCircle, MessageSquare, Settings, LogOut, ShieldAlert, Home } from 'lucide-react';
+import { LayoutDashboard, PlayCircle, PlusCircle, MessageSquare, Settings, LogOut, ShieldAlert, Home, LifeBuoy } from 'lucide-react';
 
 const Sidebar = ({ onLogout, location, isAdmin }) => (
     <aside className="sidebar glass">
@@ -32,6 +32,9 @@ const Sidebar = ({ onLogout, location, isAdmin }) => (
             )}
         </nav>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <Link to="/support" className={`sidebar-link ${location.pathname === '/support' ? 'active' : ''}`}>
+                <LifeBuoy size={20} /> Destek
+            </Link>
             <Link to="/settings" className={`sidebar-link ${location.pathname === '/settings' ? 'active' : ''}`}>
                 <Settings size={20} /> Ayarlar
             </Link>

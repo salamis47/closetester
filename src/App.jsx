@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-ro
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { logOut } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, query, collection, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, query, collection, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import AddApp from './AddApp';
@@ -12,6 +12,8 @@ import SettingsPage from './SettingsPage';
 import Chat from './Chat';
 import AdminPanel from './AdminPanel';
 import AdminAuth from './AdminAuth';
+import Support from './Support';
+import { updateProfile } from 'firebase/auth';
 
 const ADMIN_EMAIL = "farukrmak75@gmail.com";
 
@@ -80,7 +82,7 @@ const LandingPage = () => (
             Sistem tamamen <strong>Kredi (Puan)</strong> mantığıyla çalışır. Sistemi ayakta tutan şey birbirimize sağladığımız karşılıklı katkıdır:
           </p>
           <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
-            <li style={{ marginBottom: '0.5rem' }}><strong>Başlangıç Hediyesi:</strong> Kayıt olan her kullanıcıya ilk desteğini alıp verebilmesi için başlangıç kredisi tanımlanır.</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Başlangıç Hediyesi:</strong> Kayıt olan her kullanıcılara ilk desteğini alıp verebilmesi için başlangıç kredisi tanımlanır.</li>
             <li style={{ marginBottom: '0.5rem' }}><strong>Uygulama Eklerken:</strong> Kendi uygulamanızı test havuzuna eklediğinizde, test edecek kişilere dağıtılmak üzere kendi bakiyenizden belli bir kredi ayırırsınız.</li>
             <li><strong>Test Ederken:</strong> Havuzdaki başka geliştiricilerin uygulamalarını test ederek her gün kendi bakiyenizi artırırsınız (Kredi Kazanırsınız).</li>
           </ul>
@@ -122,6 +124,7 @@ function App() {
   const [myApps, setMyApps] = useState([]);
   const [isBanned, setIsBanned] = useState(false);
   const [blacklistData, setBlacklistData] = useState(null);
+  const [profileData, setProfileData] = useState({ name: '', bio: '' });
 
   // 1. Bakım Modu Dinleyicisi (Bağımsız + Anlık Event)
   useEffect(() => {
@@ -167,6 +170,10 @@ function App() {
             setCredits(data.credits || 0);
             setMyApps(data.myApps || []);
             setIsBanned(data.isBanned || false);
+            setProfileData({
+              name: data.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
+              bio: data.bio || ''
+            });
             localStorage.setItem('user_credits', data.credits || 0);
           } else {
             const blacklistRef = collection(db, 'blacklist');
@@ -185,7 +192,8 @@ function App() {
               isBanned: false,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
-              createdAt: new Date()
+              lastSeen: serverTimestamp(),
+              createdAt: serverTimestamp()
             });
           }
         }, (error) => {
@@ -200,9 +208,19 @@ function App() {
       }
     });
 
+    // 3. Online Durum Takibi (Her 2 dakikada bir güncelle)
+    const onlineTimer = setInterval(() => {
+      if (auth.currentUser) {
+        updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          lastSeen: serverTimestamp()
+        }).catch(err => console.error("lastSeen update failed:", err));
+      }
+    }, 120000); // 120 sn
+
     return () => {
       unsubAuth();
       unsubFirestore();
+      clearInterval(onlineTimer);
     };
   }, []);
 
@@ -237,6 +255,7 @@ function App() {
     onAddApp: handleAddApp,
     isAdmin: user?.email === ADMIN_EMAIL,
     isBanned: isBanned,
+    profile: profileData,
   };
 
   const isActuallyAdmin = user?.email === ADMIN_EMAIL;
@@ -299,6 +318,7 @@ function App() {
         <Route path="/test-pool" element={user ? <TestPool {...sharedProps} /> : <Navigate to="/login" />} />
         <Route path="/add-app" element={user ? <AddApp {...sharedProps} /> : <Navigate to="/login" />} />
         <Route path="/settings" element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />} />
+        <Route path="/support" element={user ? <Support {...sharedProps} /> : <Navigate to="/login" />} />
         <Route path="/chat" element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />} />
         <Route path="/admin" element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
 

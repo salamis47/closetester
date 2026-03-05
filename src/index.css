@@ -233,22 +233,32 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 0.75rem 1rem;
   background: var(--glass);
   border: 1px solid var(--glass-border);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   color: white;
   font-size: 1rem;
+  transition: all 0.2s ease;
+  line-height: 1.6;
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--primary);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 input::placeholder {

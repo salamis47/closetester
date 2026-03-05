@@ -3,18 +3,30 @@ import { LayoutDashboard, PlusCircle, PlayCircle, Settings, LogOut, User, Bell, 
 import { useLocation, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { db } from './firebase';
-import { collection, query, where, getDocs, deleteDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 
 // Yerel Sidebar kaldırıldı
 
-const SettingsPage = ({ user, onLogout, credits = 0, isAdmin }) => {
+const SettingsPage = ({ user, onLogout, credits = 0, isAdmin, profile: globalProfile }) => {
     const location = useLocation();
 
     const [profile, setProfile] = useState({
-        name: user?.displayName || user?.email?.split('@')[0] || 'Kullanıcı',
+        name: globalProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'Kullanıcı',
         email: user?.email || '',
-        bio: '',
+        bio: globalProfile?.bio || '',
     });
+
+    // Global profil değişirse (Firestore sync) yerel state'i güncelle
+    React.useEffect(() => {
+        if (globalProfile) {
+            setProfile(prev => ({
+                ...prev,
+                name: globalProfile.name,
+                bio: globalProfile.bio
+            }));
+        }
+    }, [globalProfile]);
 
     const [notifications, setNotifications] = useState({
         newTester: true,
@@ -25,9 +37,26 @@ const SettingsPage = ({ user, onLogout, credits = 0, isAdmin }) => {
 
     const [saved, setSaved] = useState(false);
 
-    const handleSave = () => {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
+    const handleSave = async () => {
+        if (!user) return;
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            await updateDoc(userRef, {
+                displayName: profile.name,
+                bio: profile.bio
+            });
+
+            // Firebase Auth profilini de güncelle (Opsiyonel ama tutarlılık için iyi)
+            await updateProfile(user, {
+                displayName: profile.name
+            });
+
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2500);
+        } catch (error) {
+            console.error("Profil güncelleme hatası:", error);
+            alert("Kaydedilemedi: " + error.message);
+        }
     };
 
     const sections = [
@@ -175,13 +204,21 @@ const SettingsPage = ({ user, onLogout, credits = 0, isAdmin }) => {
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>Google hesabınla bağlı, değiştirilemez.</p>
                                 </div>
                                 <div className="form-group">
-                                    <label>Hakkında</label>
-                                    <textarea
-                                        placeholder="Kısa bir tanıtım yaz..."
-                                        value={profile.bio}
-                                        onChange={e => setProfile({ ...profile, bio: e.target.value })}
-                                        style={{ minHeight: '100px', resize: 'vertical' }}
-                                    />
+                                    <label>Hakkında (Bio)</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <textarea
+                                            placeholder="Kısa bir tanıtım yaz..."
+                                            value={profile.bio || ''}
+                                            onChange={e => setProfile({ ...profile, bio: e.target.value.slice(0, 160) })}
+                                            style={{ minHeight: '120px', resize: 'none' }}
+                                        />
+                                        <div style={{
+                                            position: 'absolute', bottom: '8px', right: '12px',
+                                            fontSize: '0.75rem', color: (profile.bio || '').length >= 160 ? '#f87171' : 'var(--text-muted)'
+                                        }}>
+                                            {(profile.bio || '').length}/160
+                                        </div>
+                                    </div>
                                 </div>
                                 <button onClick={handleSave} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     {saved ? <><Check size={16} /> Kaydedildi!</> : 'Kaydet'}
