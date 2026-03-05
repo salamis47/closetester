@@ -224,33 +224,24 @@ function App() {
     isBanned: isBanned,
   };
 
-  if (maintenanceMode && user?.email !== ADMIN_EMAIL) {
-    const MaintenanceScreen = () => (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-        <div className="gradient-bg"></div>
-        <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px', width: '90%' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🛠️</div>
-          <h1 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Sistem Bakımda</h1>
-          <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem', fontSize: '1.1rem' }}>
-            Sitemizde şu an planlı bir kalite ve performans güncellemesi yapılmaktadır. En kısa sürede yenilenmiş haliyle geri döneceğiz.
-          </p>
-          {user ? (
-            <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
-          ) : (
-            <Link to="/admin-login" style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.08)', textDecoration: 'none' }}>·</Link>
-          )}
-        </div>
+
+  const MaintenanceScreen = () => (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+      <div className="gradient-bg"></div>
+      <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px', width: '90%' }}>
+        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🛠️</div>
+        <h1 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Sistem Bakımda</h1>
+        <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem', fontSize: '1.1rem' }}>
+          Sitemizde şu an planlı bir kalite ve performans güncellemesi yapılmaktadır. En kısa sürede yenilenmiş haliyle geri döneceğiz.
+        </p>
+        {user ? (
+          <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
+        ) : (
+          <Link to="/admin-login" style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.06)', textDecoration: 'none' }}>·</Link>
+        )}
       </div>
-    );
-    return (
-      <Router>
-        <Routes>
-          <Route path="/admin-login" element={<Login onLogin={handleLogin} />} />
-          <Route path="*" element={<MaintenanceScreen />} />
-        </Routes>
-      </Router>
-    );
-  }
+    </div>
+  );
 
   if (authLoading) {
     return (
@@ -309,38 +300,29 @@ function App() {
     );
   }
 
+  // TEK Router - bakım modu burada kontrol edilir, ayrı Router yok
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />}
-        />
-        <Route
-          path="/dashboard"
-          element={user ? <Dashboard {...sharedProps} /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/test-pool"
-          element={user ? <TestPool {...sharedProps} /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/add-app"
-          element={user ? <AddApp {...sharedProps} /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/settings"
-          element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/chat"
-          element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/admin"
-          element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />}
-        />
+        {/* Bakım modu aktifse ve kullanıcı admin değilse: sadece /admin-login açık, geri kalan her şey bakım ekranı */}
+        {maintenanceMode && user?.email !== ADMIN_EMAIL ? (
+          <>
+            <Route path="/admin-login" element={<Login onLogin={handleLogin} />} />
+            <Route path="*" element={<MaintenanceScreen />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+            <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+            <Route path="/dashboard" element={user ? <Dashboard {...sharedProps} /> : <Navigate to="/login" />} />
+            <Route path="/test-pool" element={user ? <TestPool {...sharedProps} /> : <Navigate to="/login" />} />
+            <Route path="/add-app" element={user ? <AddApp {...sharedProps} /> : <Navigate to="/login" />} />
+            <Route path="/settings" element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />} />
+            <Route path="/chat" element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />} />
+            <Route path="/admin" element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
+          </>
+        )}
       </Routes>
     </Router>
   );
