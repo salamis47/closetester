@@ -84,6 +84,7 @@ const Login = ({ onLogin }) => {
             'auth/invalid-credential': 'E-posta veya şifre hatalı.',
             'auth/configuration-not-found': 'Firebase yapılandırması eksik. Lütfen daha sonra tekrar deneyin.',
             'auth/operation-not-allowed': 'E-posta/Şifre girişi Firebase Console üzerinden henüz aktif edilmemiş.',
+            'auth/unauthorized-domain': 'Giriş Başarısız: Bu web adresi Firebase üzerinde yetkilendirilmemiş. Lütfen "closetester-v1dh.vercel.app" adresini Firebase => Authentication => Settings => Authorized domains bölümüne ekleyin.',
         };
         return messages[code] || `Bir hata oluştu: ${code}`;
     };
