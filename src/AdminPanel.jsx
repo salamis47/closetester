@@ -91,7 +91,15 @@ const AdminPanel = ({ user, onLogout }) => {
         try {
             const settingsRef = doc(db, 'settings', 'site_settings');
             const newMode = !maintenanceMode;
+
+            // 1. Anlık Event Gönder (App.jsx'i anında uyar)
+            window.dispatchEvent(new CustomEvent('maintenance_update', { detail: newMode }));
+
+            // 2. Veritabanını Güncelle
             await setDoc(settingsRef, { maintenanceMode: newMode }, { merge: true });
+
+            // 3. Yerel cache'i de güncelle (App.jsx ile uyum için)
+            localStorage.setItem('maintenance_mode', newMode);
 
             setPasswordMessage(`Bakım Modu ${newMode ? 'AKTİF (Site Ziyaretçilere Kapalı)' : 'KAPALI (Site Herkese Açık)'}`);
             setTimeout(() => setPasswordMessage(''), 4000);

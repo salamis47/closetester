@@ -111,39 +111,56 @@ const LandingPage = () => (
 function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(() => {
+    return localStorage.getItem('maintenance_mode') === 'true';
+  });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [credits, setCredits] = useState(() => {
-    // Cache'den başla (hız için)
     const saved = localStorage.getItem('user_credits');
     return saved ? parseFloat(saved) : 0;
   });
   const [myApps, setMyApps] = useState([]);
   const [isBanned, setIsBanned] = useState(false);
-  const [blacklistData, setBlacklistData] = useState(null); // { email, deletedAt }
+  const [blacklistData, setBlacklistData] = useState(null);
 
+  // 1. Bakım Modu Dinleyicisi (Bağımsız + Anlık Event)
   useEffect(() => {
-    let unsubFirestore = () => { };
-
-    // Bakım modunu dinle
+    // Firestore Dinleyicisi
     const settingsRef = doc(db, 'settings', 'site_settings');
-    const unsubSettings = onSnapshot(settingsRef, (docSnap) => {
+    const unsubFirestore = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
-        setMaintenanceMode(docSnap.data().maintenanceMode || false);
+        const mode = docSnap.data().maintenanceMode || false;
+        setMaintenanceMode(mode);
+        localStorage.setItem('maintenance_mode', mode);
       }
     });
 
+    // Anlık Event Dinleyicisi (AdminPanel'den gelen)
+    const handleInstantUpdate = (e) => {
+      const mode = e.detail;
+      setMaintenanceMode(mode);
+      localStorage.setItem('maintenance_mode', mode);
+      console.log("Anlık bakım modu güncellemesi:", mode);
+    };
+
+    window.addEventListener('maintenance_update', handleInstantUpdate);
+
+    return () => {
+      unsubFirestore();
+      window.removeEventListener('maintenance_update', handleInstantUpdate);
+    };
+  }, []);
+
+  // 2. Auth ve Kullanıcı Verisi Dinleyicisi
+  useEffect(() => {
+    let unsubFirestore = () => { };
+
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-
-      // KRİTİK: Giriş durumunu anladığımız an yükleme ekranını hemen kapatıyoruz.
-      // Veritabanı verileri (kredi vb.) arkadan sessizce yüklenecek.
       setAuthLoading(false);
 
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid);
-
-        // 1. Canlı takibi (real-time sync) hemen başlat
         unsubFirestore = onSnapshot(userRef, async (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
@@ -152,7 +169,6 @@ function App() {
             setIsBanned(data.isBanned || false);
             localStorage.setItem('user_credits', data.credits || 0);
           } else {
-            // KRİTİK: Yeni kullanıcı dökümanı oluşturmadan önce blacklist kontrolü yap
             const blacklistRef = collection(db, 'blacklist');
             const qB = query(blacklistRef, where('email', '==', firebaseUser.email), where('status', '==', 'active'));
             const bSnap = await getDocs(qB);
@@ -160,10 +176,9 @@ function App() {
             if (!bSnap.empty) {
               const bDoc = bSnap.docs[0].data();
               setBlacklistData({ ...bDoc, id: bSnap.docs[0].id });
-              return; // Kullanıcı dökümanı oluşturma, aşağıda engel ekranı gösterilecek
+              return;
             }
 
-            // Yeni kullanıcı dökümanını oluştur (asenkron, arayüzü kilitlemez)
             setDoc(userRef, {
               credits: 20,
               myApps: [],
@@ -188,16 +203,13 @@ function App() {
     return () => {
       unsubAuth();
       unsubFirestore();
-      unsubSettings();
     };
   }, []);
 
   const handleLogin = (firebaseUser) => setUser(firebaseUser);
   const handleLogout = async () => {
-    setIsLoggingOut(true);
+    sessionStorage.removeItem('admin-auth');
     await logOut();
-    setUser(null);
-    setTimeout(() => setIsLoggingOut(false), 800);
   };
 
   const handleAddCredits = async (amount) => {
@@ -227,6 +239,7 @@ function App() {
     isBanned: isBanned,
   };
 
+  const isActuallyAdmin = user?.email === ADMIN_EMAIL;
 
   const MaintenanceScreen = () => (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
@@ -237,14 +250,31 @@ function App() {
         <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem', fontSize: '1.1rem' }}>
           Sitemizde şu an planlı bir kalite ve performans güncellemesi yapılmaktadır. En kısa sürede yenilenmiş haliyle geri döneceğiz.
         </p>
-        {user ? (
-          <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
-        ) : (
-          <Link to="/admin-login" style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.06)', textDecoration: 'none' }}>·</Link>
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+          {user ? (
+            <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
+          ) : (
+            <Link to="/admin-login" className="btn-primary" style={{ textDecoration: 'none', background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', border: '1px solid #fbbf24' }}>
+              Yönetici Girişi
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
+
+  // Bakım Modu Filtresi
+  const ProtectedRoute = ({ children }) => {
+    if (maintenanceMode && !isActuallyAdmin) {
+      return (
+        <Routes>
+          <Route path="/admin-login" element={<Login onLogin={handleLogin} />} />
+          <Route path="*" element={<MaintenanceScreen />} />
+        </Routes>
+      );
+    }
+    return children;
+  };
 
   if (authLoading) {
     return (
@@ -260,61 +290,46 @@ function App() {
     );
   }
 
-  if (blacklistData) {
-    const deletedDate = blacklistData.deletedAt?.toDate() || new Date();
-    const unlockDate = new Date(deletedDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-    const now = new Date();
-    const diffDays = Math.ceil((unlockDate - now) / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 0) {
-      return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-          <div className="gradient-bg"></div>
-          <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⏳</div>
-            <h1 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Hesap Bekleme Süresinde</h1>
-            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
-              Daha önce hesabınızı sildiğiniz için topluluk güvenliği gereği yeni hesap açabilmek için <strong>{diffDays} gün</strong> daha beklemeniz gerekiyor. 🛡️
-            </p>
-            <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1.5rem' }}>
-              Bu sistem, kredi ve test süreçlerinin suistimal edilmesini önlemek için 14 günlük bir koruma sağlar.
-            </div>
-            <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
-          </div>
-        </div>
-      );
-    }
-  }
-
-  if (isBanned) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-        <div className="gradient-bg"></div>
-        <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🚫</div>
-          <h1 style={{ color: '#f87171', marginBottom: '1rem' }}>Erişim Yasaklandı</h1>
-          <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
-            Hesabınız topluluk kurallarını ihlal ettiği gerekçesiyle yönetici tarafından askıya alınmıştır.
-            Eğer bir hata olduğunu düşünüyorsanız lütfen destek ekibiyle iletişime geçin.
-          </p>
-          <button onClick={handleLogout} className="btn-outline" style={{ color: '#f87171', borderColor: '#f87171' }}>Çıkış Yap</button>
-        </div>
-      </div>
-    );
-  }
-
-  // TEK Router - bakım modu burada kontrol edilir, ayrı Router yok
   return (
     <Router>
-      <Routes>
-        {/* Bakım modu aktifse ve kullanıcı admin değilse: sadece /admin-login açık, geri kalan her şey bakım ekranı */}
-        {(maintenanceMode || isLoggingOut) && user?.email !== ADMIN_EMAIL ? (
-          <>
-            <Route path="/admin-login" element={<Login onLogin={handleLogin} />} />
-            <Route path="*" element={<MaintenanceScreen />} />
-          </>
+      <ProtectedRoute>
+        {blacklistData ? (
+          <Routes>
+            <Route path="*" element={
+              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+                <div className="gradient-bg"></div>
+                <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⏳</div>
+                  <h1 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Hesap Bekleme Süresinde</h1>
+                  <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+                    Daha önce hesabınızı sildiğiniz için topluluk güvenliği gereği yeni hesap açabilmek için <strong>{Math.ceil(((blacklistData.deletedAt?.toDate() || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000 - new Date()) / (1000 * 60 * 60 * 24))} gün</strong> daha beklemeniz gerekiyor. 🛡️
+                  </p>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1.5rem' }}>
+                    Bu sistem, kredi ve test süreçlerinin suistimal edilmesini önlemek için 14 günlük bir koruma sağlar.
+                  </div>
+                  <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
+                </div>
+              </div>
+            } />
+          </Routes>
+        ) : isBanned ? (
+          <Routes>
+            <Route path="*" element={
+              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+                <div className="gradient-bg"></div>
+                <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🚫</div>
+                  <h1 style={{ color: '#f87171', marginBottom: '1rem' }}>Erişim Yasaklandı</h1>
+                  <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+                    Hesabınız topluluk kurallarını ihlal ettiği gerekçesiyle yönetici tarafından askıya alınmıştır.
+                  </p>
+                  <button onClick={handleLogout} className="btn-outline" style={{ color: '#f87171', borderColor: '#f87171' }}>Çıkış Yap</button>
+                </div>
+              </div>
+            } />
+          </Routes>
         ) : (
-          <>
+          <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
             <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
@@ -324,9 +339,9 @@ function App() {
             <Route path="/settings" element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />} />
             <Route path="/chat" element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />} />
             <Route path="/admin" element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
-          </>
+          </Routes>
         )}
-      </Routes>
+      </ProtectedRoute>
     </Router>
   );
 }
