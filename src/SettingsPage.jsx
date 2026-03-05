@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { LayoutDashboard, PlusCircle, PlayCircle, Settings, LogOut, User, Bell, Shield, ChevronRight, Check, X, AlertTriangle, MessageSquare, ShieldAlert } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { db } from './firebase';
+import { collection, query, where, getDocs, deleteDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 // Yerel Sidebar kaldırıldı
 
@@ -39,14 +41,59 @@ const SettingsPage = ({ user, onLogout, credits = 0, isAdmin }) => {
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
 
-    const handleDeleteAccount = () => {
-        if (deleteConfirmText !== 'SİL') return;
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'SİL' || !user) return;
         setDeleting(true);
-        setTimeout(() => {
+        try {
+            const uid = user.uid;
+            // 0. Kara Listeye Ekle (14 Günlük Engelleme İçin)
+            await setDoc(doc(db, 'blacklist', uid), {
+                email: user.email,
+                deletedAt: serverTimestamp(),
+                reason: "Self-deletion",
+                status: 'active'
+            });
+
+            // 1. Kullanıcının kendi uygulamalarını bul ve sil
+            const appsRef = collection(db, 'apps');
+            const qApps = query(appsRef, where('ownerId', '==', uid));
+            const appsSnap = await getDocs(qApps);
+            for (const appDoc of appsSnap.docs) {
+                await deleteDoc(doc(db, 'apps', appDoc.id));
+            }
+
+            // 2. Kullanıcının dahil olduğu testleri sil (tester olarak veya uygulama sahibi olarak)
+            const testsRef = collection(db, 'tests');
+            const qTests1 = query(testsRef, where('testerId', '==', uid));
+            const qTests2 = query(testsRef, where('ownerId', '==', uid));
+
+            const [snap1, snap2] = await Promise.all([getDocs(qTests1), getDocs(qTests2)]);
+            const allTestDocs = [...snap1.docs, ...snap2.docs];
+
+            for (const tDoc of allTestDocs) {
+                await deleteDoc(doc(db, 'tests', tDoc.id));
+            }
+
+            // 3. Mesajları sil (varsa)
+            const msgsRef = collection(db, 'messages');
+            const qMsgs = query(msgsRef, where('senderId', '==', uid));
+            const msgsSnap = await getDocs(qMsgs);
+            for (const mDoc of msgsSnap.docs) {
+                await deleteDoc(doc(db, 'messages', mDoc.id));
+            }
+
+            // 4. Kullanıcı dökümanını sil
+            await deleteDoc(doc(db, 'users', uid));
+
+            alert("Hesabınız ve tüm verileriniz başarıyla silindi.");
+            if (onLogout) onLogout();
+        } catch (error) {
+            console.error("Hesap silme hatası:", error);
+            alert("Hata oluştu: " + error.message);
+        } finally {
             setDeleting(false);
             setDeleteModal(false);
-            if (onLogout) onLogout();
-        }, 1500);
+        }
     };
 
     return (

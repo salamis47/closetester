@@ -14,15 +14,18 @@ const Chat = ({ user, onLogout, isAdmin }) => {
     const scrollRef = useRef();
     const location = useLocation();
 
-    // Küfür filtresi listesi (Örnek - kullanıcı bunu genişletebilir)
-    const badWords = ['küfür1', 'küfür2', 'hakaret1', 'argo1'];
+    // Küfür filtresi listesi (Kapsamlı Türkçe listesi)
+    const badWords = [
+        'amk', 'aq', 'amına', 'siktir', 'sik', 'piç', 'yarrak', 'yarak', 'göt', 'oç',
+        'yavşak', 'ibne', 'fahişe', 'kahpe', 'puşt', 'gavat', 'amcık', 'meme', 'taşak'
+    ];
 
     useEffect(() => {
         if (!user) return;
         // Kullanıcının ban durumunu takip et
-        const unsubUser = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-            if (doc.exists()) {
-                setIsBanned(doc.data().isBanned || false);
+        const unsubUser = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+            if (docSnap.exists()) {
+                setIsBanned(docSnap.data().isBanned || false);
             }
         });
         return () => unsubUser();
@@ -57,31 +60,38 @@ const Chat = ({ user, onLogout, isAdmin }) => {
 
         // Küfür filtresi uygula
         let processedText = newMessage;
-        let containsBadWord = false;
+        const normalizedInput = processedText.toLocaleLowerCase('tr-TR');
+
         badWords.forEach(word => {
-            if (processedText.toLowerCase().includes(word)) {
-                containsBadWord = true;
-                const stars = '*'.repeat(word.length);
-                const regex = new RegExp(word, 'gi');
-                processedText = processedText.replace(regex, stars);
+            const normalizedWord = word.toLocaleLowerCase('tr-TR');
+            const regex = new RegExp(normalizedWord, 'gi');
+
+            // Eğer normalleştirilmiş metinde küfür varsa, orijinal metindeki karşılığını yıldızla
+            if (normalizedInput.includes(normalizedWord)) {
+                // Daha gelişmiş bir eşleşme ve değiştirme:
+                // Orijinal metni üzerinden geçerek, normalleştirilmiş haliyle eşleşen yerleri bulur
+                let searchIndex = 0;
+                while ((searchIndex = normalizedInput.indexOf(normalizedWord, searchIndex)) !== -1) {
+                    const originalPart = processedText.substring(searchIndex, searchIndex + normalizedWord.length);
+                    processedText = processedText.substring(0, searchIndex) +
+                        '*'.repeat(originalPart.length) +
+                        processedText.substring(searchIndex + normalizedWord.length);
+                    searchIndex += normalizedWord.length;
+                }
             }
         });
-
-        if (containsBadWord) {
-            // İsterseniz burada kullanıcıyı uyarabilirsiniz
-            // alert("Mesajınız uygunsuz kelimeler içeriyor ve filtrelendi.");
-        }
 
         try {
             await addDoc(collection(db, 'messages'), {
                 text: processedText,
                 uid: user.uid,
-                userName: user.displayName || user.email.split('@')[0],
+                displayName: user.displayName || user.email.split('@')[0],
                 createdAt: serverTimestamp()
             });
             setNewMessage('');
         } catch (error) {
             console.error("Mesaj gönderme hatası:", error);
+            alert("Mesaj gönderilemedi: " + error.message);
         }
     };
 

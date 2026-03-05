@@ -146,7 +146,7 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin }) => 
                         <Star size={18} color="#fbbf24" fill="#fbbf24" />
                         <div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mevcut Kredi</div>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#fbbf24' }}>{credits} 🪙</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#fbbf24' }}>{Number(credits).toFixed(2)} 🪙</div>
                         </div>
                     </div>
                 </header>

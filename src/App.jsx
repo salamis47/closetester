@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-ro
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { logOut } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, query, collection, where, getDocs } from 'firebase/firestore';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import AddApp from './AddApp';
@@ -73,10 +73,11 @@ function App() {
   const [credits, setCredits] = useState(() => {
     // Cache'den başla (hız için)
     const saved = localStorage.getItem('user_credits');
-    return saved ? parseInt(saved, 10) : 0;
+    return saved ? parseFloat(saved) : 0;
   });
   const [myApps, setMyApps] = useState([]);
   const [isBanned, setIsBanned] = useState(false);
+  const [blacklistData, setBlacklistData] = useState(null); // { email, deletedAt }
 
   useEffect(() => {
     let unsubFirestore = () => { };
@@ -92,7 +93,7 @@ function App() {
         const userRef = doc(db, 'users', firebaseUser.uid);
 
         // 1. Canlı takibi (real-time sync) hemen başlat
-        unsubFirestore = onSnapshot(userRef, (docSnap) => {
+        unsubFirestore = onSnapshot(userRef, async (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setCredits(data.credits || 0);
@@ -100,6 +101,17 @@ function App() {
             setIsBanned(data.isBanned || false);
             localStorage.setItem('user_credits', data.credits || 0);
           } else {
+            // KRİTİK: Yeni kullanıcı dökümanı oluşturmadan önce blacklist kontrolü yap
+            const blacklistRef = collection(db, 'blacklist');
+            const qB = query(blacklistRef, where('email', '==', firebaseUser.email), where('status', '==', 'active'));
+            const bSnap = await getDocs(qB);
+
+            if (!bSnap.empty) {
+              const bDoc = bSnap.docs[0].data();
+              setBlacklistData({ ...bDoc, id: bSnap.docs[0].id });
+              return; // Kullanıcı dökümanı oluşturma, aşağıda engel ekranı gösterilecek
+            }
+
             // Yeni kullanıcı dökümanını oluştur (asenkron, arayüzü kilitlemez)
             setDoc(userRef, {
               credits: 20,
@@ -116,6 +128,7 @@ function App() {
       } else {
         setCredits(0);
         setMyApps([]);
+        setBlacklistData(null);
         localStorage.removeItem('user_credits');
         unsubFirestore();
       }
@@ -172,6 +185,32 @@ function App() {
         </div>
       </div>
     );
+  }
+
+  if (blacklistData) {
+    const deletedDate = blacklistData.deletedAt?.toDate() || new Date();
+    const unlockDate = new Date(deletedDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const diffDays = Math.ceil((unlockDate - now) / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+          <div className="gradient-bg"></div>
+          <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⏳</div>
+            <h1 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Hesap Bekleme Süresinde</h1>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+              Daha önce hesabınızı sildiğiniz için topluluk güvenliği gereği yeni hesap açabilmek için <strong>{diffDays} gün</strong> daha beklemeniz gerekiyor. 🛡️
+            </p>
+            <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1.5rem' }}>
+              Bu sistem, kredi ve test süreçlerinin suistimal edilmesini önlemek için 14 günlük bir koruma sağlar.
+            </div>
+            <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
+          </div>
+        </div>
+      );
+    }
   }
 
   if (isBanned) {

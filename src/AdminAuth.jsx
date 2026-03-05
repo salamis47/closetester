@@ -37,7 +37,7 @@ const AdminAuth = (props) => {
                 setError('Yönetici şifresi yanlış.');
             }
         } catch (err) {
-            setError('Doğrulama sırasında bir hata oluştu.');
+            setError('Doğrulama hatası: ' + (err.code || err.message));
             console.error(err);
         } finally {
             setLoading(false);

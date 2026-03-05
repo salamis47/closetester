@@ -75,7 +75,7 @@ const Login = ({ onLogin }) => {
 
     const getErrorMessage = (code) => {
         const messages = {
-            'auth/email-already-in-use': 'Bu e-posta zaten kullanımda.',
+            'auth/email-already-in-use': 'Bu e-posta zaten kullanımda. Eğer daha önce verilerini sildiyseniz bile, lütfen aynı şifreyle "Giriş Yap" butonunu kullanarak devam edin.',
             'auth/invalid-email': 'Geçersiz e-posta adresi.',
             'auth/user-not-found': 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.',
             'auth/wrong-password': 'Hatalı şifre.',
@@ -84,7 +84,6 @@ const Login = ({ onLogin }) => {
             'auth/invalid-credential': 'E-posta veya şifre hatalı.',
             'auth/configuration-not-found': 'Firebase yapılandırması eksik. Lütfen daha sonra tekrar deneyin.',
             'auth/operation-not-allowed': 'E-posta/Şifre girişi Firebase Console üzerinden henüz aktif edilmemiş.',
-            'auth/user-not-found': 'Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.',
         };
         return messages[code] || `Bir hata oluştu: ${code}`;
     };
