@@ -96,9 +96,11 @@ const Login = ({ onLogin }) => {
             <div className="glass" style={{ padding: '2.5rem', width: '100%', maxWidth: '420px', margin: '1rem' }}>
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                        <span style={{ color: 'var(--primary)' }}>Play</span>Tester
-                    </div>
+                    <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                            <span style={{ color: 'var(--primary)' }}>Play</span>Tester
+                        </div>
+                    </Link>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
                         {mode === 'login' ? 'Hesabına giriş yap' : 'Yeni hesap oluştur'}
                     </p>

@@ -1,13 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, PlayCircle, PlusCircle, MessageSquare, Settings, LogOut, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, PlayCircle, PlusCircle, MessageSquare, Settings, LogOut, ShieldAlert, Home } from 'lucide-react';
 
 const Sidebar = ({ onLogout, location, isAdmin }) => (
     <aside className="sidebar glass">
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '3rem' }}>
-            <span style={{ color: 'var(--primary)' }}>Play</span>Tester
-        </div>
+        <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '3rem' }}>
+                <span style={{ color: 'var(--primary)' }}>Play</span>Tester
+            </div>
+        </Link>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+            <Link to="/" className={`sidebar-link ${location.pathname === '/' ? 'active' : ''}`}>
+                <Home size={20} /> Ana Sayfa
+            </Link>
             <Link to="/dashboard" className={`sidebar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
                 <LayoutDashboard size={20} /> Dashboard
             </Link>
