@@ -87,6 +87,20 @@ const AdminPanel = ({ user, onLogout }) => {
         };
     }, [user]);
 
+    const toggleMaintenanceMode = async () => {
+        try {
+            const settingsRef = doc(db, 'settings', 'site_settings');
+            const newMode = !maintenanceMode;
+            await setDoc(settingsRef, { maintenanceMode: newMode }, { merge: true });
+
+            setPasswordMessage(`Bakım Modu ${newMode ? 'AKTİF (Site Ziyaretçilere Kapalı)' : 'KAPALI (Site Herkese Açık)'}`);
+            setTimeout(() => setPasswordMessage(''), 4000);
+        } catch (error) {
+            console.error("Bakım modu değiştirilemedi:", error);
+            setPasswordMessage("Hata: " + error.message);
+        }
+    };
+
     const handlePasswordChange = async (e) => {
         e.preventDefault();
         if (newPassword.length < 6) {
