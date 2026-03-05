@@ -44,8 +44,8 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
                 const currentCredits = userData.credits || 0;
 
                 // 2. Kredi kontrolü
-                if (currentCredits < 20) {
-                    throw new Error(`Yetersiz kredi! Gereken: 20, Mevcut: ${currentCredits}`);
+                if (currentCredits < 15) {
+                    throw new Error(`Yetersiz kredi! Gereken: 15, Mevcut: ${currentCredits}`);
                 }
 
                 // 3. Uygulama dökümanı ID'sini önceden al
@@ -70,7 +70,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
 
                 // 5. Kullanıcı kredisini düş ve listesine ekle
                 transaction.update(userRef, {
-                    credits: increment(-20),
+                    credits: increment(-15),
                     myApps: arrayUnion({
                         id: newAppRef.id,
                         name: formData.title,
@@ -243,7 +243,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
                                     <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                                         <div>📱 <strong style={{ color: 'white' }}>{formData.title}</strong> — {formData.category}</div>
                                         <div>🏪 Play Store linki eklendi</div>
-                                        <div>💸 20 kredi havuza gönderilecek</div>
+                                        <div>💸 15 kredi havuza gönderilecek</div>
                                     </div>
                                 </div>
 

@@ -279,10 +279,10 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: 'var(--text-muted)' }}>Mevcut Tester:</span>
-                                        <span>{app.testersCount || 0}/20</span>
+                                        <span>{app.testersCount || 0}/15</span>
                                     </div>
                                     <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
-                                        <div style={{ width: `${((app.testersCount || 0) / 20) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: '3px', transition: 'width 0.3s ease' }}></div>
+                                        <div style={{ width: `${((app.testersCount || 0) / 15) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: '3px', transition: 'width 0.3s ease' }}></div>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                                         <span style={{ color: 'var(--text-muted)' }}>İlerleme (14 Gün):</span>

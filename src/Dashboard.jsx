@@ -33,7 +33,7 @@ const AppDetailModal = ({ app, onClose }) => (
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Tester Sayısı</span>
-                    <span>{app.testersCount || 0} / 20</span>
+                    <span>{app.testersCount || 0} / 15</span>
                 </div>
             </div>
             <button onClick={onClose} className="btn-primary" style={{ width: '100%', marginTop: '2rem' }}>Kapat</button>
@@ -207,7 +207,7 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin }) => 
                                         <div style={{ width: '50px', height: '50px', background: app.color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>{app.icon}</div>
                                         <div>
                                             <div style={{ fontWeight: 'bold' }}>{app.name}</div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tester: {app.testersCount || 0}/20</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tester: {app.testersCount || 0}/15</div>
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
