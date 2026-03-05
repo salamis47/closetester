@@ -1,44 +1,12 @@
 import React, { useState } from 'react';
 import { Globe, Users, Info, LayoutDashboard, PlusCircle, PlayCircle, CheckCircle2, MessageSquare, Settings, LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import Sidebar from './Sidebar';
 
 import { db } from './firebase';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, arrayUnion, runTransaction, setDoc } from 'firebase/firestore';
 
-const Sidebar = ({ onLogout, location, isAdmin }) => (
-    <aside className="sidebar glass">
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '3rem' }}>
-            <span style={{ color: 'var(--primary)' }}>Play</span>Tester
-        </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-            <Link to="/dashboard" className={`sidebar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-                <LayoutDashboard size={20} /> Dashboard
-            </Link>
-            <Link to="/test-pool" className={`sidebar-link ${location.pathname === '/test-pool' ? 'active' : ''}`}>
-                <PlayCircle size={20} /> Uygulama Havuzu
-            </Link>
-            <Link to="/add-app" className={`sidebar-link ${location.pathname === '/add-app' ? 'active' : ''}`}>
-                <PlusCircle size={20} /> Uygulama Ekle
-            </Link>
-            <Link to="/chat" className={`sidebar-link ${location.pathname === '/chat' ? 'active' : ''}`}>
-                <MessageSquare size={20} /> Topluluk Sohbet
-            </Link>
-            {isAdmin && (
-                <Link to="/admin" className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`} style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.05)' }}>
-                    <ShieldAlert size={20} /> Admin Paneli
-                </Link>
-            )}
-        </nav>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <Link to="/settings" className={`sidebar-link ${location.pathname === '/settings' ? 'active' : ''}`}>
-                <Settings size={20} /> Ayarlar
-            </Link>
-            <button onClick={onLogout} className="sidebar-link" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ff6b6b', justifyContent: 'flex-start' }}>
-                <LogOut size={20} /> Çıkış Yap
-            </button>
-        </div>
-    </aside>
-);
+// Yerel Sidebar kaldırıldı
 
 const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
     const navigate = useNavigate();
@@ -58,7 +26,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
 
     const handleSubmit = async () => {
         if (!user || loading) return;
-        
+
         setLoading(true);
         const userRef = doc(db, 'users', user.uid);
         const appsCollectionRef = collection(db, 'apps');
@@ -67,7 +35,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
             await runTransaction(db, async (transaction) => {
                 // 1. Kullanıcı dökümanını kontrol et
                 const userSnap = await transaction.get(userRef);
-                
+
                 if (!userSnap.exists()) {
                     throw new Error("Kullanıcı kaydınız bulunamadı. Lütfen tekrar giriş yapın.");
                 }
@@ -281,9 +249,9 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <button className="btn-outline" onClick={prevStep}>← Geri</button>
-                                    <button 
-                                        className="btn-primary" 
-                                        onClick={handleSubmit} 
+                                    <button
+                                        className="btn-primary"
+                                        onClick={handleSubmit}
                                         disabled={loading}
                                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                     >

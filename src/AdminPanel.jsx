@@ -1,47 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where, increment } from 'firebase/firestore';
-import { 
-    ShieldAlert, Users, LayoutDashboard, PlayCircle, PlusCircle, 
-    MessageSquare, Settings, LogOut, Search, Trash2, 
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where, increment, orderBy, setDoc } from 'firebase/firestore';
+import {
+    ShieldAlert, Users, LayoutDashboard, PlayCircle, PlusCircle,
+    MessageSquare, Settings, LogOut, Search, Trash2,
     CheckCircle2, XCircle, DollarSign, TrendingUp, BarChart3, Clock
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Sidebar from './Sidebar';
 
-const Sidebar = ({ onLogout, location, isAdmin }) => (
-    <aside className="sidebar glass">
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '3rem' }}>
-            <span style={{ color: 'var(--primary)' }}>Play</span>Tester
-        </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-            <Link to="/dashboard" className={`sidebar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-                <LayoutDashboard size={20} /> Dashboard
-            </Link>
-            <Link to="/test-pool" className={`sidebar-link ${location.pathname === '/test-pool' ? 'active' : ''}`}>
-                <PlayCircle size={20} /> Uygulama Havuzu
-            </Link>
-            <Link to="/add-app" className={`sidebar-link ${location.pathname === '/add-app' ? 'active' : ''}`}>
-                <PlusCircle size={20} /> Uygulama Ekle
-            </Link>
-            <Link to="/chat" className={`sidebar-link ${location.pathname === '/chat' ? 'active' : ''}`}>
-                <MessageSquare size={20} /> Topluluk Sohbet
-            </Link>
-            {isAdmin && (
-                <Link to="/admin" className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`} style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.05)' }}>
-                    <ShieldAlert size={20} /> Admin Paneli
-                </Link>
-            )}
-        </nav>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <Link to="/settings" className={`sidebar-link ${location.pathname === '/settings' ? 'active' : ''}`}>
-                <Settings size={20} /> Ayarlar
-            </Link>
-            <button onClick={onLogout} className="sidebar-link" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ff6b6b', justifyContent: 'flex-start' }}>
-                <LogOut size={20} /> Çıkış Yap
-            </button>
-        </div>
-    </aside>
-);
+// Yerel Sidebar kaldırıldı
 
 const AdminPanel = ({ user, onLogout }) => {
     const location = useLocation();
@@ -50,6 +18,7 @@ const AdminPanel = ({ user, onLogout }) => {
     const [users, setUsers] = useState([]);
     const [apps, setApps] = useState([]);
     const [tests, setTests] = useState([]);
+    const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalUsers: 0,
@@ -81,14 +50,19 @@ const AdminPanel = ({ user, onLogout }) => {
         // 3. Tüm testleri çek
         const unsubTests = onSnapshot(collection(db, 'tests'), (snapshot) => {
             setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            setStats(prev => ({ ...prev, totalTests: snapshot.size }));
             setLoading(false);
+        });
+
+        // 4. Tüm mesajları çek
+        const unsubMessages = onSnapshot(query(collection(db, 'messages'), orderBy('createdAt', 'desc')), (snapshot) => {
+            setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
 
         return () => {
             unsubUsers();
             unsubApps();
             unsubTests();
+            unsubMessages();
         };
     }, [user]);
 
@@ -122,6 +96,27 @@ const AdminPanel = ({ user, onLogout }) => {
             });
         } catch (error) {
             console.error("Kredi güncelleme hatası:", error);
+        }
+    };
+
+    const handleBanUser = async (userId, currentStatus) => {
+        const action = currentStatus ? "kaldırmak" : "yasaklamak";
+        if (!window.confirm(`Bu kullanıcıyı ${action} istediğinize emin misiniz?`)) return;
+        try {
+            await updateDoc(doc(db, 'users', userId), {
+                isBanned: !currentStatus
+            });
+        } catch (error) {
+            console.error("Kullanıcı banlama hatası:", error);
+        }
+    };
+
+    const handleDeleteMessage = async (msgId) => {
+        if (!window.confirm("Bu mesajı silmek istediğinize emin misiniz?")) return;
+        try {
+            await deleteDoc(doc(db, 'messages', msgId));
+        } catch (error) {
+            console.error("Mesaj silme hatası:", error);
         }
     };
 
@@ -174,33 +169,40 @@ const AdminPanel = ({ user, onLogout }) => {
 
                 {/* Sekme Menüsü */}
                 <div className="glass" style={{ display: 'flex', padding: '0.5rem', borderRadius: '1rem', marginBottom: '2rem', gap: '0.5rem' }}>
-                    <button 
-                        onClick={() => setActiveTab('users')} 
-                        className={activeTab === 'users' ? 'btn-primary' : 'btn-outline'} 
+                    <button
+                        onClick={() => setActiveTab('users')}
+                        className={activeTab === 'users' ? 'btn-primary' : 'btn-outline'}
                         style={{ flex: 1, border: 'none', padding: '0.75rem' }}
                     >
                         Kullanıcılar
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('apps')} 
-                        className={activeTab === 'apps' ? 'btn-primary' : 'btn-outline'} 
+                    <button
+                        onClick={() => setActiveTab('apps')}
+                        className={activeTab === 'apps' ? 'btn-primary' : 'btn-outline'}
                         style={{ flex: 1, border: 'none', padding: '0.75rem' }}
                     >
                         Uygulamalar
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('tests')} 
-                        className={activeTab === 'tests' ? 'btn-primary' : 'btn-outline'} 
+                    <button
+                        onClick={() => setActiveTab('chat')}
+                        className={activeTab === 'chat' ? 'btn-primary' : 'btn-outline'}
                         style={{ flex: 1, border: 'none', padding: '0.75rem' }}
                     >
-                        Son Testler
+                        Sohbet Yönetimi
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('settings')} 
-                        className={activeTab === 'settings' ? 'btn-primary' : 'btn-outline'} 
+                    <button
+                        onClick={() => setActiveTab('tests')}
+                        className={activeTab === 'tests' ? 'btn-primary' : 'btn-outline'}
                         style={{ flex: 1, border: 'none', padding: '0.75rem' }}
                     >
-                        Yönetici Ayarları
+                        Testler
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('settings')}
+                        className={activeTab === 'settings' ? 'btn-primary' : 'btn-outline'}
+                        style={{ flex: 1, border: 'none', padding: '0.75rem' }}
+                    >
+                        Ayarlar
                     </button>
                 </div>
 
@@ -222,13 +224,19 @@ const AdminPanel = ({ user, onLogout }) => {
                                     <tbody>
                                         {users.map(u => (
                                             <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <td style={{ padding: '1rem' }}>{u.displayName || 'İsimsiz'}</td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    {u.displayName || 'İsimsiz'}
+                                                    {u.isBanned && <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', background: '#f87171', color: 'white', padding: '2px 4px', borderRadius: '4px' }}>YASAKLI</span>}
+                                                </td>
                                                 <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{u.email}</td>
                                                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>{u.credits}</td>
                                                 <td style={{ padding: '1rem' }}>
                                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                        <button onClick={() => handleUpdateUserCredits(u.id, 10)} style={{ padding: '4px 8px', background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>+10 Kredi</button>
-                                                        <button onClick={() => handleUpdateUserCredits(u.id, -10)} style={{ padding: '4px 8px', background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>-10 Kredi</button>
+                                                        <button onClick={() => handleUpdateUserCredits(u.id, 10)} style={{ padding: '4px 8px', background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>+10</button>
+                                                        <button onClick={() => handleUpdateUserCredits(u.id, -10)} style={{ padding: '4px 8px', background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>-10</button>
+                                                        <button onClick={() => handleBanUser(u.id, u.isBanned)} style={{ padding: '4px 8px', background: u.isBanned ? 'rgba(74, 222, 128, 0.1)' : 'rgba(248, 113, 113, 0.1)', color: u.isBanned ? '#4ade80' : '#f87171', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                                                            {u.isBanned ? 'Yasağı Kaldır' : 'Yasakla'}
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -263,6 +271,26 @@ const AdminPanel = ({ user, onLogout }) => {
                         </div>
                     )}
 
+                    {activeTab === 'chat' && (
+                        <div>
+                            <h3 style={{ marginBottom: '1.5rem' }}>Sohbet Yönetimi</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {messages.map(msg => (
+                                    <div key={msg.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>{msg.userName} <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.75rem' }}>({new Date(msg.createdAt?.seconds * 1000).toLocaleString()})</span></div>
+                                            <div style={{ fontSize: '0.9rem' }}>{msg.text}</div>
+                                        </div>
+                                        <button onClick={() => handleDeleteMessage(msg.id)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {messages.length === 0 && <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Henüz mesaj yok.</p>}
+                            </div>
+                        </div>
+                    )}
+
                     {activeTab === 'tests' && (
                         <div>
                             <h3 style={{ marginBottom: '1.5rem' }}>Sistemdeki Son Testler</h3>
@@ -279,6 +307,34 @@ const AdminPanel = ({ user, onLogout }) => {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'settings' && (
+                        <div style={{ maxWidth: '500px' }}>
+                            <h3 style={{ marginBottom: '1.5rem' }}>Yönetici Ayarları</h3>
+                            <form onSubmit={handlePasswordChange} className="glass" style={{ padding: '2rem', borderRadius: '1rem' }}>
+                                <div className="form-group">
+                                    <label>Yeni Yönetici Şifresi</label>
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="Min. 6 karakter"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Şifreyi Onayla</label>
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="Şifreyi tekrar girin"
+                                    />
+                                </div>
+                                {passwordMessage && <p style={{ color: passwordMessage.includes('başarıyla') ? '#4ade80' : '#f87171', fontSize: '0.85rem', marginBottom: '1rem' }}>{passwordMessage}</p>}
+                                <button type="submit" className="btn-primary" style={{ width: '100%' }}>Şifreyi Güncelle</button>
+                            </form>
                         </div>
                     )}
                 </div>

@@ -1,45 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, PlusCircle, PlayCircle, Search, Star, ShieldCheck, X, ExternalLink, Loader2, CheckCircle2, MessageSquare, Camera, Upload, AlertCircle, Settings, LogOut, ShieldAlert } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Sidebar from './Sidebar';
 import { db, storage } from './firebase';
 import { collection, onSnapshot, query, where, doc, updateDoc, increment, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Tesseract from 'tesseract.js';
 
-const Sidebar = ({ onLogout, location, isAdmin }) => (
-    <aside className="sidebar glass">
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '3rem' }}>
-            <span style={{ color: 'var(--primary)' }}>Play</span>Tester
-        </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-            <Link to="/dashboard" className={`sidebar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-                <LayoutDashboard size={20} /> Dashboard
-            </Link>
-            <Link to="/test-pool" className={`sidebar-link ${location.pathname === '/test-pool' ? 'active' : ''}`}>
-                <PlayCircle size={20} /> Uygulama Havuzu
-            </Link>
-            <Link to="/add-app" className={`sidebar-link ${location.pathname === '/add-app' ? 'active' : ''}`}>
-                <PlusCircle size={20} /> Uygulama Ekle
-            </Link>
-            <Link to="/chat" className={`sidebar-link ${location.pathname === '/chat' ? 'active' : ''}`}>
-                <MessageSquare size={20} /> Topluluk Sohbet
-            </Link>
-            {isAdmin && (
-                <Link to="/admin" className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`} style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.05)' }}>
-                    <ShieldAlert size={20} /> Admin Paneli
-                </Link>
-            )}
-        </nav>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <Link to="/settings" className={`sidebar-link ${location.pathname === '/settings' ? 'active' : ''}`}>
-                <Settings size={20} /> Ayarlar
-            </Link>
-            <button onClick={onLogout} className="sidebar-link" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ff6b6b', justifyContent: 'flex-start' }}>
-                <LogOut size={20} /> Çıkış Yap
-            </button>
-        </div>
-    </aside>
-);
+// Yerel Sidebar kaldırıldı
 
 const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
     const location = useLocation();
@@ -63,7 +31,7 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
 
     useEffect(() => {
         if (!user) return;
-        
+
         // 1. Havuzdaki tüm aktif uygulamaları çek
         const q = query(collection(db, 'apps'), where('status', '==', 'active'));
         const unsub = onSnapshot(q, (snapshot) => {
@@ -79,7 +47,7 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
         const unsubTests = onSnapshot(qMyTests, (snapshot) => {
             setJoinedApps(snapshot.docs.map(doc => doc.data().appId));
         });
-        
+
         return () => { unsub(); unsubTests(); };
     }, [user]);
 
@@ -88,13 +56,13 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
         if (file) {
             setScreenshot(file);
             setPreviewUrl(URL.createObjectURL(file));
-            
+
             // AI Analizini Başlat
             setAiStatus('analyzing');
             try {
                 const { data: { text } } = await Tesseract.recognize(file, 'eng+tur');
                 const appName = testingApp?.name?.toLowerCase() || '';
-                
+
                 // Basit bir kontrol: Uygulama adı resmin içinde geçiyor mu?
                 if (text.toLowerCase().includes(appName)) {
                     setAiStatus('success');
@@ -117,7 +85,7 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
             alert("Lütfen önce kanıt için bir ekran görüntüsü yükleyin.");
             return;
         }
-        
+
         setUploading(true);
         try {
             // 1. Ekran görüntüsünü yükle
@@ -282,9 +250,9 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>Kanıt Yükle</div>
                                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Uygulamayı açtığına dair bir ekran görüntüsü yükle.</p>
-                                    
-                                    <label className="glass" style={{ 
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', 
+
+                                    <label className="glass" style={{
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center',
                                         padding: '1.5rem', borderRadius: '1rem', border: '2px dashed rgba(255,255,255,0.1)',
                                         cursor: 'pointer', transition: 'all 0.3s'
                                     }}>
@@ -322,9 +290,9 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
 
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <button onClick={() => { setTestingApp(null); setPreviewUrl(null); }} className="btn-outline" style={{ flex: 1 }}>Vazgeç</button>
-                            <button 
-                                onClick={() => handleConfirmTest(testingApp)} 
-                                className="btn-primary" 
+                            <button
+                                onClick={() => handleConfirmTest(testingApp)}
+                                className="btn-primary"
                                 style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                                 disabled={uploading || !screenshot}
                             >

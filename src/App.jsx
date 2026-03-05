@@ -76,32 +76,35 @@ function App() {
     return saved ? parseInt(saved, 10) : 0;
   });
   const [myApps, setMyApps] = useState([]);
+  const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
-    let unsubFirestore = () => {};
+    let unsubFirestore = () => { };
 
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      
+
       // KRİTİK: Giriş durumunu anladığımız an yükleme ekranını hemen kapatıyoruz.
       // Veritabanı verileri (kredi vb.) arkadan sessizce yüklenecek.
       setAuthLoading(false);
-      
+
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid);
-        
+
         // 1. Canlı takibi (real-time sync) hemen başlat
         unsubFirestore = onSnapshot(userRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setCredits(data.credits || 0);
             setMyApps(data.myApps || []);
+            setIsBanned(data.isBanned || false);
             localStorage.setItem('user_credits', data.credits || 0);
           } else {
             // Yeni kullanıcı dökümanını oluştur (asenkron, arayüzü kilitlemez)
             setDoc(userRef, {
               credits: 20,
               myApps: [],
+              isBanned: false,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               createdAt: new Date()
@@ -154,6 +157,7 @@ function App() {
     onAddCredits: handleAddCredits,
     onAddApp: handleAddApp,
     isAdmin: user?.email === ADMIN_EMAIL,
+    isBanned: isBanned,
   };
 
   if (authLoading) {
@@ -165,6 +169,23 @@ function App() {
             <span style={{ color: 'var(--primary)' }}>Play</span>Tester
           </div>
           <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isBanned) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+        <div className="gradient-bg"></div>
+        <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🚫</div>
+          <h1 style={{ color: '#f87171', marginBottom: '1rem' }}>Erişim Yasaklandı</h1>
+          <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+            Hesabınız topluluk kurallarını ihlal ettiği gerekçesiyle yönetici tarafından askıya alınmıştır.
+            Eğer bir hata olduğunu düşünüyorsanız lütfen destek ekibiyle iletişime geçin.
+          </p>
+          <button onClick={handleLogout} className="btn-outline" style={{ color: '#f87171', borderColor: '#f87171' }}>Çıkış Yap</button>
         </div>
       </div>
     );

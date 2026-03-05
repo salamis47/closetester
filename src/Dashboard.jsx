@@ -1,43 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, PlusCircle, PlayCircle, Settings, LogOut, Star, X, Users, CheckCircle2, Clock, MessageSquare, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, PlayCircle, Settings, LogOut, Star, X, Users, CheckCircle2, Clock, MessageSquare, ShieldAlert, Info, ExternalLink } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import Sidebar from './Sidebar';
 import { db } from './firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-
-const Sidebar = ({ onLogout, location, isAdmin }) => (
-    <aside className="sidebar glass">
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '3rem' }}>
-            <span style={{ color: 'var(--primary)' }}>Play</span>Tester
-        </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-            <Link to="/dashboard" className={`sidebar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-                <LayoutDashboard size={20} /> Dashboard
-            </Link>
-            <Link to="/test-pool" className={`sidebar-link ${location.pathname === '/test-pool' ? 'active' : ''}`}>
-                <PlayCircle size={20} /> Uygulama Havuzu
-            </Link>
-            <Link to="/add-app" className={`sidebar-link ${location.pathname === '/add-app' ? 'active' : ''}`}>
-                <PlusCircle size={20} /> Uygulama Ekle
-            </Link>
-            <Link to="/chat" className={`sidebar-link ${location.pathname === '/chat' ? 'active' : ''}`}>
-                <MessageSquare size={20} /> Topluluk Sohbet
-            </Link>
-            {isAdmin && (
-                <Link to="/admin" className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`} style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.05)' }}>
-                    <ShieldAlert size={20} /> Admin Paneli
-                </Link>
-            )}
-        </nav>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <Link to="/settings" className={`sidebar-link ${location.pathname === '/settings' ? 'active' : ''}`}>
-                <Settings size={20} /> Ayarlar
-            </Link>
-            <button onClick={onLogout} className="sidebar-link" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ff6b6b', justifyContent: 'flex-start' }}>
-                <LogOut size={20} /> Çıkış Yap
-            </button>
-        </div>
-    </aside>
-);
+import { collection, query, where, onSnapshot, updateDoc, doc, increment } from 'firebase/firestore';
 
 const AppDetailModal = ({ app, onClose }) => (
     <div style={{
@@ -75,7 +41,7 @@ const AppDetailModal = ({ app, onClose }) => (
     </div>
 );
 
-const Dashboard = ({ user, credits = 0, onLogout, isAdmin }) => {
+const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [selectedApp, setSelectedApp] = useState(null);
@@ -106,8 +72,8 @@ const Dashboard = ({ user, credits = 0, onLogout, isAdmin }) => {
 
         // 3. Onay bekleyen testleri çek
         const qPending = query(
-            collection(db, 'tests'), 
-            where('ownerId', '==', user.uid), 
+            collection(db, 'tests'),
+            where('ownerId', '==', user.uid),
             where('status', '==', 'pending_approval')
         );
         const unsubPending = onSnapshot(qPending, (snapshot) => {
@@ -266,9 +232,9 @@ const Dashboard = ({ user, credits = 0, onLogout, isAdmin }) => {
                         <button onClick={() => setSelectedTest(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                             <X size={20} />
                         </button>
-                        
+
                         <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>Test Kanıtını İncele</h3>
-                        
+
                         <div style={{ marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Gönderen: <strong>{selectedTest.testerName}</strong></div>

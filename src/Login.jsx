@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth, googleProvider } from './firebase';
-import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 
 const Login = ({ onLogin }) => {
     const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -27,6 +27,24 @@ const Login = ({ onLogin }) => {
     const handleEmailAuth = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (mode === 'reset') {
+            if (!email) {
+                setError('Lütfen e-posta adresinizi girin.');
+                return;
+            }
+            setLoading(true);
+            try {
+                await sendPasswordResetEmail(auth, email);
+                setMode('login');
+                setError('Şifre sıfırlama e-postası gönderildi! Lütfen e-postanı kontrol et.');
+            } catch (err) {
+                setError(getErrorMessage(err.code));
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
 
         if (mode === 'register') {
             if (password !== confirmPassword) {
@@ -65,6 +83,8 @@ const Login = ({ onLogin }) => {
             'auth/popup-closed-by-user': 'Google girişi iptal edildi.',
             'auth/invalid-credential': 'E-posta veya şifre hatalı.',
             'auth/configuration-not-found': 'Firebase yapılandırması eksik. Lütfen daha sonra tekrar deneyin.',
+            'auth/operation-not-allowed': 'E-posta/Şifre girişi Firebase Console üzerinden henüz aktif edilmemiş.',
+            'auth/user-not-found': 'Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.',
         };
         return messages[code] || `Bir hata oluştu: ${code}`;
     };
@@ -137,16 +157,29 @@ const Login = ({ onLogin }) => {
                             required
                         />
                     </div>
-                    <div className="form-group">
-                        <label>Şifre</label>
-                        <input
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
+                    {mode !== 'reset' && (
+                        <div className="form-group">
+                            <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                Şifre
+                                {mode === 'login' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setMode('reset'); setError(''); }}
+                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
+                                    >
+                                        Şifremi Unuttum?
+                                    </button>
+                                )}
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                    )}
                     {mode === 'register' && (
                         <div className="form-group">
                             <label>Şifre Tekrar</label>
@@ -172,7 +205,9 @@ const Login = ({ onLogin }) => {
                         disabled={loading}
                         style={{ width: '100%', padding: '0.875rem', fontSize: '0.95rem' }}
                     >
-                        {loading ? 'Lütfen bekle...' : mode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}
+                        {loading ? 'Lütfen bekle...' :
+                            mode === 'login' ? 'Giriş Yap' :
+                                mode === 'register' ? 'Kayıt Ol' : 'Şifreyi Sıfırla'}
                     </button>
                 </form>
 
@@ -184,12 +219,16 @@ const Login = ({ onLogin }) => {
                                 Kayıt Ol
                             </button>
                         </>
-                    ) : (
+                    ) : mode === 'register' ? (
                         <>Zaten hesabın var mı?{' '}
                             <button onClick={() => { setMode('login'); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: '600', padding: 0 }}>
                                 Giriş Yap
                             </button>
                         </>
+                    ) : (
+                        <button onClick={() => { setMode('login'); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: '600', padding: 0 }}>
+                            ← Giriş Ekranına Dön
+                        </button>
                     )}
                 </p>
             </div>

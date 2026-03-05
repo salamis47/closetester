@@ -1,49 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc } from 'firebase/firestore';
 import { Send, User, MessageSquare, LayoutDashboard, PlayCircle, PlusCircle, Settings, LogOut, ShieldAlert } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import Sidebar from './Sidebar';
 
-const Sidebar = ({ onLogout, location, isAdmin }) => (
-    <aside className="sidebar glass">
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '3rem' }}>
-            <span style={{ color: 'var(--primary)' }}>Play</span>Tester
-        </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-            <Link to="/dashboard" className={`sidebar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-                <LayoutDashboard size={20} /> Dashboard
-            </Link>
-            <Link to="/test-pool" className={`sidebar-link ${location.pathname === '/test-pool' ? 'active' : ''}`}>
-                <PlayCircle size={20} /> Uygulama Havuzu
-            </Link>
-            <Link to="/add-app" className={`sidebar-link ${location.pathname === '/add-app' ? 'active' : ''}`}>
-                <PlusCircle size={20} /> Uygulama Ekle
-            </Link>
-            <Link to="/chat" className={`sidebar-link ${location.pathname === '/chat' ? 'active' : ''}`}>
-                <MessageSquare size={20} /> Topluluk Sohbet
-            </Link>
-            {isAdmin && (
-                <Link to="/admin" className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`} style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.05)' }}>
-                    <ShieldAlert size={20} /> Admin Paneli
-                </Link>
-            )}
-        </nav>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <Link to="/settings" className={`sidebar-link ${location.pathname === '/settings' ? 'active' : ''}`}>
-                <Settings size={20} /> Ayarlar
-            </Link>
-            <button onClick={onLogout} className="sidebar-link" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ff6b6b', justifyContent: 'flex-start' }}>
-                <LogOut size={20} /> Çıkış Yap
-            </button>
-        </div>
-    </aside>
-);
+// Yerel Sidebar kaldırıldı
 
 const Chat = ({ user, onLogout, isAdmin }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [isBanned, setIsBanned] = useState(false);
     const scrollRef = useRef();
     const location = useLocation();
+
+    // Küfür filtresi listesi (Örnek - kullanıcı bunu genişletebilir)
+    const badWords = ['küfür1', 'küfür2', 'hakaret1', 'argo1'];
+
+    useEffect(() => {
+        if (!user) return;
+        // Kullanıcının ban durumunu takip et
+        const unsubUser = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+            if (doc.exists()) {
+                setIsBanned(doc.data().isBanned || false);
+            }
+        });
+        return () => unsubUser();
+    }, [user]);
 
     useEffect(() => {
         const q = query(
@@ -67,12 +50,33 @@ const Chat = ({ user, onLogout, isAdmin }) => {
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim() || !user) return;
+        if (isBanned) {
+            alert("Hesabınız yasaklandığı için mesaj gönderemezsiniz.");
+            return;
+        }
+
+        // Küfür filtresi uygula
+        let processedText = newMessage;
+        let containsBadWord = false;
+        badWords.forEach(word => {
+            if (processedText.toLowerCase().includes(word)) {
+                containsBadWord = true;
+                const stars = '*'.repeat(word.length);
+                const regex = new RegExp(word, 'gi');
+                processedText = processedText.replace(regex, stars);
+            }
+        });
+
+        if (containsBadWord) {
+            // İsterseniz burada kullanıcıyı uyarabilirsiniz
+            // alert("Mesajınız uygunsuz kelimeler içeriyor ve filtrelendi.");
+        }
 
         try {
             await addDoc(collection(db, 'messages'), {
-                text: newMessage,
+                text: processedText,
                 uid: user.uid,
-                displayName: user.displayName || user.email.split('@')[0],
+                userName: user.displayName || user.email.split('@')[0],
                 createdAt: serverTimestamp()
             });
             setNewMessage('');
@@ -95,20 +99,20 @@ const Chat = ({ user, onLogout, isAdmin }) => {
                 <div className="glass" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '1.5rem' }}>
                     <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {messages.map((msg) => (
-                            <div key={msg.id} style={{ 
+                            <div key={msg.id} style={{
                                 alignSelf: msg.uid === user?.uid ? 'flex-end' : 'flex-start',
                                 maxWidth: '70%'
                             }}>
-                                <div style={{ 
-                                    fontSize: '0.75rem', 
-                                    color: 'var(--text-muted)', 
+                                <div style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--text-muted)',
                                     marginBottom: '0.25rem',
                                     textAlign: msg.uid === user?.uid ? 'right' : 'left'
                                 }}>
                                     {msg.displayName}
                                 </div>
-                                <div style={{ 
-                                    padding: '0.75rem 1rem', 
+                                <div style={{
+                                    padding: '0.75rem 1rem',
                                     borderRadius: msg.uid === user?.uid ? '1.25rem 1.25rem 0 1.25rem' : '1.25rem 1.25rem 1.25rem 0',
                                     background: msg.uid === user?.uid ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
                                     color: 'white',
@@ -121,16 +125,22 @@ const Chat = ({ user, onLogout, isAdmin }) => {
                         <div ref={scrollRef}></div>
                     </div>
 
-                    <form onSubmit={handleSendMessage} style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '1rem' }}>
-                        <input 
-                            type="text" 
+                    <form onSubmit={handleSendMessage} style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '1rem', position: 'relative' }}>
+                        {isBanned && (
+                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, borderRadius: '0 0 1.5rem 1.5rem' }}>
+                                <span style={{ color: '#f87171', fontWeight: 'bold' }}>Sohbet erişiminiz kısıtlandı.</span>
+                            </div>
+                        )}
+                        <input
+                            type="text"
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Bir mesaj yazın..."
+                            placeholder={isBanned ? "Mesaj gönderemezsiniz" : "Bir mesaj yazın..."}
                             className="glass"
-                            style={{ flex: 1, background: 'rgba(255,255,255,0.02)', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '1rem', color: 'white', outline: 'none' }}
+                            disabled={isBanned}
+                            style={{ flex: 1, background: 'rgba(255,255,255,0.02)', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '1rem', color: 'white', outline: 'none', opacity: isBanned ? 0.5 : 1 }}
                         />
-                        <button type="submit" className="btn-primary" style={{ padding: '0.75rem', borderRadius: '1rem' }}>
+                        <button type="submit" className="btn-primary" style={{ padding: '0.75rem', borderRadius: '1rem' }} disabled={isBanned}>
                             <Send size={20} />
                         </button>
                     </form>
