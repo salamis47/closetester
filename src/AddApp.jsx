@@ -8,7 +8,7 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, arrayUn
 
 // Yerel Sidebar kaldırıldı
 
-const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
+const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [step, setStep] = useState(1);
@@ -54,7 +54,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin }) => {
                 // 4. Uygulamayı havuza ekle
                 transaction.set(newAppRef, {
                     ownerId: user.uid,
-                    ownerName: user.displayName || user.email.split('@')[0],
+                    ownerName: profile?.name || user.displayName || user.email.split('@')[0],
                     name: formData.title,
                     category: formData.category,
                     storeLink: formData.storeLink,

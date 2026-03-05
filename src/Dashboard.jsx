@@ -41,7 +41,7 @@ const AppDetailModal = ({ app, onClose }) => (
     </div>
 );
 
-const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin }) => {
+const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin, profile }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [selectedApp, setSelectedApp] = useState(null);
@@ -129,7 +129,7 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin }) => 
         }
     };
 
-    const userName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Kullanıcı';
+    const userName = profile?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Kullanıcı';
 
     return (
         <div className="dashboard-layout">
