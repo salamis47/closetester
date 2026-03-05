@@ -50,6 +50,7 @@ const AdminPanel = ({ user, onLogout }) => {
         // 3. Tüm testleri çek
         const unsubTests = onSnapshot(collection(db, 'tests'), (snapshot) => {
             setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setStats(prev => ({ ...prev, totalTests: snapshot.size }));
             setLoading(false);
         });
 
@@ -278,7 +279,9 @@ const AdminPanel = ({ user, onLogout }) => {
                                 {messages.map(msg => (
                                     <div key={msg.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>{msg.userName} <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.75rem' }}>({new Date(msg.createdAt?.seconds * 1000).toLocaleString()})</span></div>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                                                {msg.displayName} <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.75rem' }}>({new Date(msg.createdAt?.seconds * 1000).toLocaleString()})</span>
+                                            </div>
                                             <div style={{ fontSize: '0.9rem' }}>{msg.text}</div>
                                         </div>
                                         <button onClick={() => handleDeleteMessage(msg.id)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
