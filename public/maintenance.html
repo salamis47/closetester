@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Bakımda | PlayTester</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --bg: #0f172a;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        .gradient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.1) 25%, transparent 50%);
+            z-index: -1;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 2rem;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+        h1 {
+            color: #fbbf24;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        .logo {
+            font-weight: bold;
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            display: block;
+        }
+        .logo span {
+            color: var(--primary);
+        }
+        .btn-admin {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            border: 1px solid #fbbf24;
+            border-radius: 0.75rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-admin:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="gradient-bg"></div>
+    <div class="glass">
+        <div class="logo"><span>Play</span>Tester</div>
+        <div class="icon">🛠️</div>
+        <h1>Sistem Bakımda</h1>
+        <p>
+            Şu an sitemizde planlı bir kalite ve performans güncellemesi yapıyoruz. <br>
+            Kısa bir süre sonra çok daha hızlı ve yenilenmiş olarak geri döneceğiz.
+        </p>
+        <a href="/admin-login" class="btn-admin">Yönetici Girişi</a>
+    </div>
+</body>
+</html>
