@@ -254,7 +254,7 @@ function App() {
           {user ? (
             <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
           ) : (
-            <Link to="/admin-login" className="btn-primary" style={{ textDecoration: 'none', background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', border: '1px solid #fbbf24' }}>
+            <Link to="/admin-login" className="btn-primary" style={{ textDecoration: 'none', background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', border: '1px solid #fbbf24', padding: '0.75rem 1.5rem', borderRadius: '0.75rem' }}>
               Yönetici Girişi
             </Link>
           )}
@@ -262,19 +262,6 @@ function App() {
       </div>
     </div>
   );
-
-  // Bakım Modu Filtresi
-  const ProtectedRoute = ({ children }) => {
-    if (maintenanceMode && !isActuallyAdmin) {
-      return (
-        <Routes>
-          <Route path="/admin-login" element={<Login onLogin={handleLogin} />} />
-          <Route path="*" element={<MaintenanceScreen />} />
-        </Routes>
-      );
-    }
-    return children;
-  };
 
   if (authLoading) {
     return (
@@ -292,44 +279,15 @@ function App() {
 
   return (
     <Router>
-      <ProtectedRoute>
-        {blacklistData ? (
-          <Routes>
-            <Route path="*" element={
-              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-                <div className="gradient-bg"></div>
-                <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
-                  <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⏳</div>
-                  <h1 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Hesap Bekleme Süresinde</h1>
-                  <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
-                    Daha önce hesabınızı sildiğiniz için topluluk güvenliği gereği yeni hesap açabilmek için <strong>{Math.ceil(((blacklistData.deletedAt?.toDate() || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000 - new Date()) / (1000 * 60 * 60 * 24))} gün</strong> daha beklemeniz gerekiyor. 🛡️
-                  </p>
-                  <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1.5rem' }}>
-                    Bu sistem, kredi ve test süreçlerinin suistimal edilmesini önlemek için 14 günlük bir koruma sağlar.
-                  </div>
-                  <button onClick={handleLogout} className="btn-outline" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Çıkış Yap</button>
-                </div>
-              </div>
-            } />
-          </Routes>
-        ) : isBanned ? (
-          <Routes>
-            <Route path="*" element={
-              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-                <div className="gradient-bg"></div>
-                <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', maxWidth: '500px' }}>
-                  <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🚫</div>
-                  <h1 style={{ color: '#f87171', marginBottom: '1rem' }}>Erişim Yasaklandı</h1>
-                  <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
-                    Hesabınız topluluk kurallarını ihlal ettiği gerekçesiyle yönetici tarafından askıya alınmıştır.
-                  </p>
-                  <button onClick={handleLogout} className="btn-outline" style={{ color: '#f87171', borderColor: '#f87171' }}>Çıkış Yap</button>
-                </div>
-              </div>
-            } />
-          </Routes>
+      <Routes>
+        {/* Bakım Modu Koruması */}
+        {maintenanceMode && !isActuallyAdmin ? (
+          <>
+            <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+            <Route path="*" element={<MaintenanceScreen />} />
+          </>
         ) : (
-          <Routes>
+          <>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
             <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
@@ -339,9 +297,13 @@ function App() {
             <Route path="/settings" element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />} />
             <Route path="/chat" element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />} />
             <Route path="/admin" element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
-          </Routes>
+
+            {/* Ban ve Bekleme Ekranları */}
+            {isBanned && <Route path="*" element={<Navigate to="/" />} />}
+            {blacklistData && <Route path="*" element={<Navigate to="/" />} />}
+          </>
         )}
-      </ProtectedRoute>
+      </Routes>
     </Router>
   );
 }
