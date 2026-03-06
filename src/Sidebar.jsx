@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, PlayCircle, PlusCircle, MessageSquare, Settings, LogOut, ShieldAlert, Home, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, PlayCircle, PlusCircle, MessageSquare, Settings, LogOut, ShieldAlert, Home, LifeBuoy, Users } from 'lucide-react';
 
 const Sidebar = ({ onLogout, location, isAdmin }) => (
     <aside className="sidebar glass">
@@ -25,6 +25,9 @@ const Sidebar = ({ onLogout, location, isAdmin }) => (
             <Link to="/chat" className={`sidebar-link ${location.pathname === '/chat' ? 'active' : ''}`}>
                 <MessageSquare size={20} /> Topluluk Sohbet
             </Link>
+            <a href="https://groups.google.com/g/playtester_community_tr" target="_blank" rel="noreferrer" className="sidebar-link" style={{ color: 'var(--primary)' }}>
+                <Users size={20} /> Topluluk Grubu
+            </a>
             {isAdmin && (
                 <Link to="/admin" className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`} style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.05)' }}>
                     <ShieldAlert size={20} /> Admin Paneli

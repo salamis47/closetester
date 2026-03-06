@@ -35,7 +35,7 @@ const LandingPage = () => (
       <section className="hero">
         <h1>Uygulamanı Birlikte <br /> <span style={{ color: 'var(--primary)' }}>Yayınlayalım</span></h1>
         <p>
-          Google Play'in 14 gün ve 15 test kullanıcısı kuralını aşmak artık çok kolay.
+          Google Play'in 14 gün ve 12 test kullanıcısı kuralını aşmak artık çok kolay.
           Geliştiriciler birbirlerine yardım eder, uygulamalar yayına hazır hale gelir.
         </p>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
@@ -71,6 +71,46 @@ const LandingPage = () => (
           </h3>
           <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
             Google Play Store, yeni geliştiricilerin uygulamalarını yayınlamadan önce <strong>14 gün boyunca aralıksız en az 12 farklı kullanıcı</strong> tarafından test edilmesini şart koşar. PlayTester Community, geliştiricilerin bir araya gelerek birbirlerinin uygulamalarını test ettiği, bu sayede herkesin engelleri ücretsiz ve güvenli bir şekilde aşmasını sağlayan yardımlaşma kapısıdır.
+          </p>
+        </div>
+
+        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', marginBottom: '2rem', borderLeft: '4px solid #a855f7' }}>
+          <h3 style={{ color: '#a855f7', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
+            📢 Topluluk Grubu Sistemi
+          </h3>
+          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
+            Kendi Google Grubu'nuzu kurmak ve yönetmekle uğraşmak istemiyor musunuz? Platformumuzun size özel sunduğu <strong>Ortak Topluluk Grubu</strong> ile süreci hızlandırın:
+          </p>
+          <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Hazır Altyapı:</strong> Uygulama eklerken tek tıkla topluluk grubumuzu seçebilirsiniz.</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Geniş Erişim:</strong> Binlerce tester'ın zaten üye olduğu bu grubu kullanarak tester bulma aşamasını saniyelere indirin.</li>
+            <li><strong>Kolay Kurulum:</strong> Play Console'da tek bir e-posta adresini (playtester_community_tr@googlegroups.com) eklemeniz yeterlidir.</li>
+          </ul>
+        </div>
+
+        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', marginBottom: '2rem', borderLeft: '4px solid #06b6d4' }}>
+          <h3 style={{ color: '#06b6d4', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
+            🛠️ Google Play Console Kurulumu (Nasıl Eklenir?)
+          </h3>
+          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1.5rem' }}>
+            Topluluk grubumuzu kullanmak için Play Console panelinizde şu basit 3 adımı yapmanız yeterlidir:
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+            <div className="glass" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem' }}>1. Adım</div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Play Console'da <strong>"Test" &gt; "Kapalı Test"</strong> bölümüne gidin ve ilgili kanalı yönetin.</p>
+            </div>
+            <div className="glass" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem' }}>2. Adım</div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}><strong>"Test Kullanıcıları"</strong> sekmesine tıklayın ve "E-posta Listesi Oluştur" deyin.</p>
+            </div>
+            <div className="glass" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem' }}>3. Adım</div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Grup e-postasını ekleyin: <br /><code style={{ color: 'var(--primary)', wordBreak: 'break-all', display: 'block', marginTop: '0.5rem' }}>playtester_community_tr@googlegroups.com</code></p>
+            </div>
+          </div>
+          <p style={{ marginTop: '1.5rem', fontSize: '0.95rem', color: '#fbbf24', fontStyle: 'italic' }}>
+            * Not: Google Grubu'nun console'a eklendikten sonra yayına alınması (review) gerekebilir. Bu normal bir süreçtir.
           </p>
         </div>
 
@@ -117,12 +157,12 @@ const LandingPage = () => (
           </ul>
         </div>
       </section>
-    </main>
+    </main >
 
     <footer className="container" style={{ padding: '4rem 2rem', borderTop: '1px solid var(--glass-border)', marginTop: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
       <p>© 2026 PlayTester Community. Geliştiriciler tarafından geliştiriciler için yapıldı.</p>
     </footer>
-  </div>
+  </div >
 );
 
 function App() {
@@ -171,75 +211,84 @@ function App() {
 
   // 2. Auth ve Kullanıcı Verisi Dinleyicisi
   useEffect(() => {
-    let unsubFirestore = () => { };
+    let unsubFirestore = null;
 
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Önceki listener'ı temizle
+      if (unsubFirestore) {
+        unsubFirestore();
+        unsubFirestore = null;
+      }
+
       setUser(firebaseUser);
       setAuthLoading(false);
 
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid);
         unsubFirestore = onSnapshot(userRef, async (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setCredits(data.credits || 0);
-            setMyApps(data.myApps || []);
-            setIsBanned(data.isBanned || false);
-            setProfileData({
-              name: data.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
-              bio: data.bio || ''
-            });
-            localStorage.setItem('user_credits', data.credits || 0);
-          } else {
-            const blacklistRef = collection(db, 'blacklist');
-            const qB = query(blacklistRef, where('email', '==', firebaseUser.email), where('status', '==', 'active'));
-            const bSnap = await getDocs(qB);
+          try {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setCredits(data.credits || 0);
+              setMyApps(data.myApps || []);
+              setIsBanned(data.isBanned || false);
+              setProfileData({
+                name: data.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
+                bio: data.bio || ''
+              });
+              localStorage.setItem('user_credits', data.credits || 0);
+            } else {
+              // Karaliste kontrolü
+              const blacklistRef = collection(db, 'blacklist');
+              const qB = query(blacklistRef, where('email', '==', firebaseUser.email), where('status', '==', 'active'));
+              const bSnap = await getDocs(qB);
 
-            if (!bSnap.empty) {
-              const bDoc = bSnap.docs[0].data();
-              setBlacklistData({ ...bDoc, id: bSnap.docs[0].id });
-              return;
+              if (!bSnap.empty) {
+                const bDoc = bSnap.docs[0].data();
+                setBlacklistData({ ...bDoc, id: bSnap.docs[0].id });
+              } else {
+                // Yeni kullanıcı oluştur
+                await setDoc(userRef, {
+                  credits: 20,
+                  myApps: [],
+                  isBanned: false,
+                  email: firebaseUser.email,
+                  displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+                  lastSeen: serverTimestamp(),
+                  createdAt: serverTimestamp()
+                });
+              }
             }
-
-            setDoc(userRef, {
-              credits: 20,
-              myApps: [],
-              isBanned: false,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              lastSeen: serverTimestamp(),
-              createdAt: serverTimestamp()
-            });
+          } catch (err) {
+            console.error("User data sync error:", err);
           }
-        }, (error) => {
-          console.error("Firestore sync error:", error);
         });
       } else {
         setCredits(0);
         setMyApps([]);
+        setIsBanned(false);
         setBlacklistData(null);
         localStorage.removeItem('user_credits');
-        unsubFirestore();
       }
     });
 
-    // 3. Online Durum Takibi (Her 2 dakikada bir güncelle)
     const onlineTimer = setInterval(() => {
       if (auth.currentUser) {
         updateDoc(doc(db, 'users', auth.currentUser.uid), {
           lastSeen: serverTimestamp()
         }).catch(err => console.error("lastSeen update failed:", err));
       }
-    }, 120000); // 120 sn
+    }, 120000);
 
     return () => {
       unsubAuth();
-      unsubFirestore();
+      if (unsubFirestore) unsubFirestore();
       clearInterval(onlineTimer);
     };
   }, []);
 
   const handleLogin = (firebaseUser) => setUser(firebaseUser);
+
   const handleLogout = async () => {
     sessionStorage.removeItem('admin-auth');
     await logOut();
@@ -261,6 +310,8 @@ function App() {
     });
   };
 
+  const isActuallyAdmin = user?.email === ADMIN_EMAIL;
+
   const sharedProps = {
     user,
     credits,
@@ -268,12 +319,10 @@ function App() {
     onLogout: handleLogout,
     onAddCredits: handleAddCredits,
     onAddApp: handleAddApp,
-    isAdmin: user?.email === ADMIN_EMAIL,
+    isAdmin: isActuallyAdmin,
     isBanned: isBanned,
     profile: profileData,
   };
-
-  const isActuallyAdmin = user?.email === ADMIN_EMAIL;
 
   const MaintenanceScreen = () => (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
@@ -297,6 +346,26 @@ function App() {
     </div>
   );
 
+  // Korunmuş Rota Bileşeni
+  const ProtectedRoute = ({ children }) => {
+    if (authLoading) return null; // Yüklenme anında bir şey gösterme (App loading zaten üstte)
+    if (!user) return <Navigate to="/login" replace />;
+    if (isBanned || blacklistData) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white', textAlign: 'center', padding: '2rem' }}>
+          <div className="gradient-bg"></div>
+          <div className="glass" style={{ padding: '2rem' }}>
+            <h2 style={{ color: '#f87171', marginBottom: '1rem' }}>Erişim Engellendi</h2>
+            <p>Hesabınız askıya alınmıştır veya kurallar gereği bekleme süresindedir.</p>
+            <button onClick={handleLogout} className="btn-outline" style={{ marginTop: '1.5rem' }}>Çıkış Yap</button>
+          </div>
+        </div>
+      );
+    }
+    if (maintenanceMode && !isActuallyAdmin) return <Navigate to="/maintenance" replace />;
+    return children;
+  };
+
   if (authLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -311,34 +380,26 @@ function App() {
     );
   }
 
-  // Eğer bakım modu aktifse ve admin değilse her durumda Bakım Ekranını göster (Route bazlı değil, uygulama bazlı koruma)
-  if (maintenanceMode && !isActuallyAdmin) {
-    return (
-      <Router>
-        <Routes>
-          <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
-          <Route path="*" element={<MaintenanceScreen />} />
-        </Routes>
-      </Router>
-    );
-  }
-
   return (
     <Router>
       <Routes>
+        {/* Her zaman açık olan rotalar */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/maintenance" element={maintenanceMode && !isActuallyAdmin ? <MaintenanceScreen /> : <Navigate to="/" />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
         <Route path="/admin-login" element={user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
-        <Route path="/dashboard" element={user ? <Dashboard {...sharedProps} /> : <Navigate to="/login" />} />
-        <Route path="/test-pool" element={user ? <TestPool {...sharedProps} /> : <Navigate to="/login" />} />
-        <Route path="/add-app" element={user ? <AddApp {...sharedProps} /> : <Navigate to="/login" />} />
-        <Route path="/settings" element={user ? <SettingsPage {...sharedProps} /> : <Navigate to="/login" />} />
-        <Route path="/support" element={user ? <Support {...sharedProps} /> : <Navigate to="/login" />} />
-        <Route path="/chat" element={user ? <Chat {...sharedProps} /> : <Navigate to="/login" />} />
-        <Route path="/admin" element={user && sharedProps.isAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
 
-        {/* Ban ve Silinmiş Hesap Koruması */}
-        {(isBanned || blacklistData) && <Route path="*" element={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>Hesabınız askıya alınmıştır.</div>} />}
+        {/* Korunan rotalar */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard {...sharedProps} /></ProtectedRoute>} />
+        <Route path="/test-pool" element={<ProtectedRoute><TestPool {...sharedProps} /></ProtectedRoute>} />
+        <Route path="/add-app" element={<ProtectedRoute><AddApp {...sharedProps} /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage {...sharedProps} /></ProtectedRoute>} />
+        <Route path="/support" element={<ProtectedRoute><Support {...sharedProps} /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><Chat {...sharedProps} /></ProtectedRoute>} />
+        <Route path="/admin" element={user && isActuallyAdmin ? <AdminAuth {...sharedProps} /> : <Navigate to="/dashboard" />} />
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

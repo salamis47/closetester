@@ -18,11 +18,18 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
         title: '',
         category: 'Oyun',
         storeLink: '',
-        groupLink: ''
+        groupLink: 'https://groups.google.com/g/playtester_community_tr'
     });
 
     const nextStep = () => setStep(step + 1);
     const prevStep = () => setStep(step - 1);
+
+    const isValidStoreLink = (link) => {
+        const regex = /^https:\/\/play\.google\.com\/store\/apps\/details\?id=[a-zA-Z0-9._]+(&.*)?$/;
+        return regex.test(link);
+    };
+
+    const isStoreLinkError = formData.storeLink && !isValidStoreLink(formData.storeLink);
 
     const handleSubmit = async () => {
         if (!user || loading) return;
@@ -107,7 +114,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
                         </p>
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                             <button onClick={() => navigate('/dashboard')} className="btn-primary">Dashboard'a Git</button>
-                            <button onClick={() => { setDone(false); setStep(1); setFormData({ title: '', category: 'Oyun', storeLink: '', groupLink: '' }); }} className="btn-outline">Yeni Ekle</button>
+                            <button onClick={() => { setDone(false); setStep(1); setFormData({ title: '', category: 'Oyun', storeLink: '', groupLink: 'https://groups.google.com/g/playtester_community_tr' }); }} className="btn-outline">Yeni Ekle</button>
                         </div>
                     </div>
                 </main>
@@ -208,15 +215,22 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
                                         placeholder="https://play.google.com/store/apps/details?id=..."
                                         value={formData.storeLink}
                                         onChange={(e) => setFormData({ ...formData, storeLink: e.target.value })}
+                                        style={{ borderColor: isStoreLinkError ? '#ff6b6b' : 'var(--glass-border)' }}
                                         autoFocus
                                     />
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                                        Uygulamanın Play Console'da "Kapalı Test" aşamasında olması gerekir.
-                                    </p>
+                                    {isStoreLinkError ? (
+                                        <p style={{ fontSize: '0.8rem', color: '#ff6b6b', marginTop: '0.5rem' }}>
+                                            ⚠️ Geçersiz link! Lütfen "https://play.google.com/..." ile başlayan doğru linki girin.
+                                        </p>
+                                    ) : (
+                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                            Uygulamanın Play Console'da "Kapalı Test" aşamasında olması gerekir.
+                                        </p>
+                                    )}
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
                                     <button className="btn-outline" onClick={prevStep}>← Geri</button>
-                                    <button className="btn-primary" onClick={nextStep} disabled={!formData.storeLink}>Devam Et →</button>
+                                    <button className="btn-primary" onClick={nextStep} disabled={!formData.storeLink || isStoreLinkError}>Devam Et →</button>
                                 </div>
                             </div>
                         )}
@@ -225,7 +239,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
                             <div>
                                 <h3 style={{ marginBottom: '2rem' }}>Tester Erişimi</h3>
                                 <div className="form-group">
-                                    <label>Google Group Katılım Linki</label>
+                                    <label>Google Group Katılım Linki (Varsayılan: Topluluk Grubu)</label>
                                     <input
                                         type="url"
                                         placeholder="https://groups.google.com/g/..."
@@ -233,6 +247,22 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
                                         onChange={(e) => setFormData({ ...formData, groupLink: e.target.value })}
                                         autoFocus
                                     />
+                                    <div className="glass" style={{ marginTop: '1rem', padding: '1.25rem', borderRadius: '0.75rem', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                                        <p style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Users size={16} color="var(--primary)" /> <strong>Google Play Console Kurulumu:</strong>
+                                        </p>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                                            Uygulamanızın test edilebilmesi için Play Console'da <strong>"Testerlar"</strong> (Testers) bölümüne şu e-posta grubunu eklemeyi unutmayın:
+                                        </p>
+                                        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <code style={{ flex: 1, color: 'var(--primary)', background: 'rgba(99, 102, 241, 0.1)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.9rem', border: '1px dashed var(--primary)' }}>
+                                                playtester_community_tr@googlegroups.com
+                                            </code>
+                                        </div>
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem', fontStyle: 'italic' }}>
+                                            * Kendi grubunuzu kullanmak isterseniz yukarıdaki linki değiştirebilirsiniz.
+                                        </p>
+                                    </div>
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                                         Testerlar bu link üzerinden gruba katılarak uygulamanı indirebilir.
                                     </p>

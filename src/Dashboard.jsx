@@ -3,43 +3,99 @@ import { LayoutDashboard, PlusCircle, PlayCircle, Settings, LogOut, Star, X, Use
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { db } from './firebase';
-import { collection, query, where, onSnapshot, updateDoc, doc, increment } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, increment, getDocs } from 'firebase/firestore';
 
-const AppDetailModal = ({ app, onClose }) => (
-    <div style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-        <div className="glass" style={{ width: '500px', padding: '2rem', borderRadius: '1.5rem', position: 'relative' }}>
-            <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                <X size={20} />
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <div style={{ width: '60px', height: '60px', background: app.color, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
-                    {app.icon}
+const AppDetailModal = ({ app, onClose }) => {
+    const [testerEmails, setTesterEmails] = useState([]);
+    const [loadingEmails, setLoadingEmails] = useState(true);
+
+    useEffect(() => {
+        const fetchEmails = async () => {
+            try {
+                const q = query(collection(db, 'tests'), where('appId', '==', app.id));
+                const snap = await getDocs(q);
+                const emails = snap.docs.map(doc => doc.data().testerEmail).filter(Boolean);
+                // Unique emails
+                setTesterEmails([...new Set(emails)]);
+            } catch (err) {
+                console.error("Email fetch error:", err);
+            } finally {
+                setLoadingEmails(false);
+            }
+        };
+        fetchEmails();
+    }, [app.id]);
+
+    const copyAllEmails = () => {
+        const text = testerEmails.join(', ');
+        navigator.clipboard.writeText(text);
+        alert("E-postalar kopyalandı!");
+    };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+            <div className="glass" style={{ width: '500px', padding: '2rem', borderRadius: '1.5rem', position: 'relative' }}>
+                <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    <X size={20} />
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <div style={{ width: '60px', height: '60px', background: app.color, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+                        {app.icon}
+                    </div>
+                    <div>
+                        <h3 style={{ fontSize: '1.25rem' }}>{app.name}</h3>
+                        <div style={{ color: '#4ade80', fontSize: '0.85rem' }}>✓ {app.status === 'active' ? 'Aktif Test' : 'Tamamlandı'}</div>
+                    </div>
                 </div>
-                <div>
-                    <h3 style={{ fontSize: '1.25rem' }}>{app.name}</h3>
-                    <div style={{ color: '#4ade80', fontSize: '0.85rem' }}>✓ {app.status === 'active' ? 'Aktif Test' : 'Tamamlandı'}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Test Günü</span>
+                        <span style={{ fontWeight: 'bold' }}>{app.testDay || 0} / 14</span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>
+                        <div style={{ width: `${((app.testDay || 0) / 14) * 100}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', borderRadius: '4px' }}></div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Tester Sayısı</span>
+                        <span>{app.testersCount || 0} / 12</span>
+                    </div>
+
+                    <div className="glass" style={{ marginTop: '1rem', padding: '1rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.02)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h4 style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>Tester E-posta Listesi</h4>
+                            {testerEmails.length > 0 && (
+                                <button
+                                    onClick={copyAllEmails}
+                                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                                >
+                                    Tümünü Kopyala
+                                </button>
+                            )}
+                        </div>
+
+                        <div style={{ maxHeight: '120px', overflowY: 'auto', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                            {loadingEmails ? (
+                                <p>Yükleniyor...</p>
+                            ) : testerEmails.length > 0 ? (
+                                testerEmails.map((email, idx) => (
+                                    <div key={idx} style={{ padding: '0.25rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                        {email}
+                                    </div>
+                                ))
+                            ) : (
+                                <p style={{ fontSize: '0.8rem', fontStyle: 'italic' }}>Henüz katılan tester yok.</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
+                <button onClick={onClose} className="btn-primary" style={{ width: '100%', marginTop: '2rem' }}>Kapat</button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Test Günü</span>
-                    <span style={{ fontWeight: 'bold' }}>{app.testDay || 0} / 14</span>
-                </div>
-                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                    <div style={{ width: `${((app.testDay || 0) / 14) * 100}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', borderRadius: '4px' }}></div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Tester Sayısı</span>
-                    <span>{app.testersCount || 0} / 15</span>
-                </div>
-            </div>
-            <button onClick={onClose} className="btn-primary" style={{ width: '100%', marginTop: '2rem' }}>Kapat</button>
         </div>
-    </div>
-);
+    );
+};
 
 const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin, profile }) => {
     const navigate = useNavigate();
@@ -207,7 +263,7 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin, profi
                                         <div style={{ width: '50px', height: '50px', background: app.color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>{app.icon}</div>
                                         <div>
                                             <div style={{ fontWeight: 'bold' }}>{app.name}</div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tester: {app.testersCount || 0}/15</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tester: {app.testersCount || 0}/12</div>
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
