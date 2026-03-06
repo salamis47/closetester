@@ -3,7 +3,7 @@ import { LayoutDashboard, PlusCircle, PlayCircle, Search, Star, ShieldCheck, X, 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { db, storage } from './firebase';
-import { collection, onSnapshot, query, where, doc, updateDoc, increment, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, updateDoc, increment, addDoc, serverTimestamp, runTransaction, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import Tesseract from 'tesseract.js';
 
@@ -22,19 +22,24 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
     const [screenshot, setScreenshot] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [aiStatus, setAiStatus] = useState(null); // 'analyzing', 'success', 'failed'
+    const [hasClickedGroup, setHasClickedGroup] = useState(false);
+    const [hasClickedStore, setHasClickedStore] = useState(false);
 
     const filteredApps = poolApps.filter(app => {
+        const isJoined = joinedApps.some(t => t.appId === app.id);
+        const isOwner = app.ownerId === user?.uid;
         const name = app.name || '';
         const category = app.category || '';
         const search = searchQuery.toLowerCase();
-        return name.toLowerCase().includes(search) || category.toLowerCase().includes(search);
+        const matchesSearch = name.toLowerCase().includes(search) || category.toLowerCase().includes(search);
+        return !isOwner && (app.status === 'active' || app.status === 'pending_review') && matchesSearch;
     });
 
     useEffect(() => {
         if (!user) return;
 
         // 1. Havuzdaki tüm aktif uygulamaları çek
-        const q = query(collection(db, 'apps'), where('status', '==', 'active'));
+        const q = query(collection(db, 'apps'), where('status', 'in', ['active', 'pending_review']));
         const unsub = onSnapshot(q, (snapshot) => {
             const apps = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -93,29 +98,57 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
 
     const handleTestEt = (app) => {
         setTestingApp(app);
+        setHasClickedGroup(false);
+        setHasClickedStore(false);
+    };
+
+    const getFileHash = async (file) => {
+        const arrayBuffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
     };
 
     const handleJoinTest = async (app) => {
-        if (!user) return;
+        if (!user || !hasClickedGroup || !hasClickedStore) return;
         setUploading(true);
         try {
-            await addDoc(collection(db, 'tests'), {
-                appId: app.id,
-                appName: app.name,
-                testerId: user.uid,
-                testerName: user.displayName || user.email.split('@')[0],
-                testerEmail: user.email,
-                ownerId: app.ownerId,
-                status: 'active', // Direkt aktif başlatıyoruz
-                proofCount: 0,
-                startedAt: serverTimestamp(),
-                lastProofAt: null,
-                reward: app.reward || 5
+            await runTransaction(db, async (transaction) => {
+                const appRef = doc(db, 'apps', app.id);
+                const appSnap = await transaction.get(appRef);
+
+                if (!appSnap.exists()) {
+                    throw new Error("Uygulama bulunamadı.");
+                }
+
+                // 1. Test dökümanını oluştur (Manuel ID ile transaction içinde setDoc yapıyoruz)
+                const newTestRef = doc(collection(db, 'tests'));
+                transaction.set(newTestRef, {
+                    appId: app.id,
+                    appName: app.name,
+                    testerId: user.uid,
+                    testerName: user.displayName || user.email.split('@')[0],
+                    testerEmail: user.email,
+                    ownerId: app.ownerId,
+                    status: 'active',
+                    proofCount: 0,
+                    startedAt: serverTimestamp(),
+                    lastProofAt: null,
+                    reward: app.reward || 5
+                });
+
+                // 2. Uygulama dökümanındaki tester sayısını artır
+                transaction.update(appRef, {
+                    testersCount: increment(1)
+                });
             });
+
             setTestingApp(null);
             setFeedback({ type: 'success', message: "Teste başarıyla katıldınız! Lütfen 14 gün boyunca her gün uygulamayı açıp kanıt gönderin. 🎉" });
             setTimeout(() => setFeedback(null), 5000);
         } catch (error) {
+            console.error("Katılma hatası:", error);
             setFeedback({ type: 'error', message: "Hata: " + error.message });
         } finally {
             setUploading(false);
@@ -143,9 +176,24 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
         }
 
         setUploading(true);
-        setFeedback({ type: 'info', message: "Görsel AI tarafından doğrulanıyor..." });
+        setFeedback({ type: 'info', message: "Görsel AI ve güvenlik kontrolünden geçiyor..." });
 
         try {
+            // 1. TAZELİK KONTROLÜ (Son 24 saat)
+            const hourInMs = 60 * 60 * 1000;
+            const now = new Date().getTime();
+            const fileTime = screenshot.lastModified;
+            if (now - fileTime > 24 * hourInMs) {
+                throw new Error("Bu ekran görüntüsü çok eski! Lütfen son 24 saat içinde çekilmiş yeni bir görsel yükleyin.");
+            }
+
+            // 2. HASH (PARMAK İZİ) KONTROLÜ
+            const fileHash = await getFileHash(screenshot);
+            const proofHashes = myTestData?.proofHashes || [];
+            if (proofHashes.includes(fileHash)) {
+                throw new Error("Bu görseli daha önce kullandınız! Lütfen uygulamayı tekrar açıp yeni bir ekran görüntüsü alın.");
+            }
+
             // ARTIK GÖRSEL SAKLAMIYORUZ (Sistem otomatik onayladığı için)
             // Sadece test dökümanını güncelliyoruz
             const testRef = doc(db, 'tests', testId);
@@ -156,7 +204,8 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
                 proofCount: increment(1),
                 aiVerified: true,
                 status: newProofCount >= 14 ? 'completed' : 'approved',
-                screenshotUrl: "verified_by_ai" // Görsel saklamıyoruz, sadece onay bilgisi
+                screenshotUrl: "verified_by_ai", // Görsel saklamıyoruz, sadece onay bilgisi
+                proofHashes: arrayUnion(fileHash)
             };
 
             await updateDoc(testRef, updateData);
@@ -264,10 +313,13 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
 
                         return (
                             <div key={app.id} className="glass card feature-card" style={{ margin: 0, padding: '1.5rem', opacity: isJoined && proofCount >= 14 ? 0.6 : 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                                    <div style={{ fontSize: '2.5rem' }}>{app.icon}</div>
-                                    <div style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '2rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                                        {app.category}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                    <div style={{ fontSize: '2rem' }}>{app.icon}</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                                        <div style={{ padding: '0.25rem 0.75rem', background: app.status === 'active' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(251, 191, 36, 0.1)', color: app.status === 'active' ? '#4ade80' : '#fbbf24', borderRadius: '2rem', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                            {app.status === 'active' ? 'AKTİF' : 'ONAY BEKLİYOR'}
+                                        </div>
+                                        <div style={{ padding: '0.25rem 0.75rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', borderRadius: '2rem', fontSize: '0.7rem' }}>{app.category || 'Uygulama'}</div>
                                     </div>
                                 </div>
 
@@ -299,20 +351,36 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
                                         <div style={{ fontWeight: 'bold', color: '#fbbf24' }}>+{app.reward || 5} Kredi</div>
                                     </div>
                                     {isJoined ? (
-                                        <button
-                                            onClick={() => !isProofToday && proofCount < 14 && handleTestEt(app)}
-                                            className="btn-outline"
-                                            disabled={isProofToday || proofCount >= 14}
-                                            style={{
-                                                padding: '0.6rem 1.2rem',
-                                                borderColor: (isProofToday || proofCount >= 14) ? '#10b981' : '#f87171',
-                                                color: (isProofToday || proofCount >= 14) ? '#10b981' : '#f87171',
-                                                cursor: (isProofToday || proofCount >= 14) ? 'default' : 'pointer',
-                                                opacity: (isProofToday || proofCount >= 14) ? 0.7 : 1
-                                            }}
-                                        >
-                                            {proofCount >= 14 ? 'Tamamlandı ✅' : (isProofToday ? 'Günlük Kanıt Tamam' : 'Günlük Kanıt Gerekli!')}
-                                        </button>
+                                        app.status === 'pending_review' ? (
+                                            <button
+                                                disabled={true}
+                                                className="btn-outline"
+                                                style={{
+                                                    padding: '0.6rem 1.2rem',
+                                                    borderColor: '#fbbf24',
+                                                    color: '#fbbf24',
+                                                    cursor: 'default',
+                                                    opacity: 0.7
+                                                }}
+                                            >
+                                                Testin Başlaması Bekleniyor
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => !isProofToday && proofCount < 14 && handleTestEt(app)}
+                                                className="btn-outline"
+                                                disabled={isProofToday || proofCount >= 14}
+                                                style={{
+                                                    padding: '0.6rem 1.2rem',
+                                                    borderColor: (isProofToday || proofCount >= 14) ? '#10b981' : '#f87171',
+                                                    color: (isProofToday || proofCount >= 14) ? '#10b981' : '#f87171',
+                                                    cursor: (isProofToday || proofCount >= 14) ? 'default' : 'pointer',
+                                                    opacity: (isProofToday || proofCount >= 14) ? 0.7 : 1
+                                                }}
+                                            >
+                                                {proofCount >= 14 ? 'Tamamlandı ✅' : (isProofToday ? 'Günlük Kanıt Tamam' : 'Günlük Kanıt Gerekli!')}
+                                            </button>
+                                        )
                                     ) : (
                                         <button onClick={() => handleTestEt(app)} className="btn-primary" style={{ padding: '0.6rem 1.2rem' }}>Teste Katıl</button>
                                     )}
@@ -341,23 +409,52 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                             {/* Adım 1 ve 2 her zaman gösterilir */}
-                            <div className="glass" style={{ padding: '1rem', borderRadius: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <div style={{ width: '32px', height: '32px', background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>1</div>
-                                <div>
+                            <div className="glass" style={{ padding: '1rem', borderRadius: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center', border: hasClickedGroup ? '1px solid #4ade80' : '1px solid transparent' }}>
+                                <div style={{ width: '32px', height: '32px', background: hasClickedGroup ? '#4ade80' : 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0, transition: 'all 0.3s' }}>
+                                    {hasClickedGroup ? <CheckCircle2 size={18} color="black" /> : '1'}
+                                </div>
+                                <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>Google Gruba Katıl</div>
-                                    <a href={testingApp.groupLink} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <a
+                                        href={testingApp.groupLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={() => setHasClickedGroup(true)}
+                                        style={{ color: 'var(--primary)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}
+                                    >
                                         Gruba Git <ExternalLink size={12} />
                                     </a>
+                                    {!hasClickedGroup && (
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={hasClickedGroup}
+                                                onChange={(e) => setHasClickedGroup(e.target.checked)}
+                                                style={{ cursor: 'pointer', accentColor: '#4ade80' }}
+                                            />
+                                            Zaten bu gruba üyeyim
+                                        </label>
+                                    )}
                                 </div>
+                                {hasClickedGroup && <span style={{ fontSize: '0.7rem', color: '#4ade80' }}>Tıklandı</span>}
                             </div>
-                            <div className="glass" style={{ padding: '1rem', borderRadius: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <div style={{ width: '32px', height: '32px', background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>2</div>
-                                <div>
+                            <div className="glass" style={{ padding: '1rem', borderRadius: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center', border: hasClickedStore ? '1px solid #4ade80' : '1px solid transparent' }}>
+                                <div style={{ width: '32px', height: '32px', background: hasClickedStore ? '#4ade80' : 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0, transition: 'all 0.3s' }}>
+                                    {hasClickedStore ? <CheckCircle2 size={18} color="black" /> : '2'}
+                                </div>
+                                <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>Play Store'dan Yükle</div>
-                                    <a href={testingApp.storeLink} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <a
+                                        href={testingApp.storeLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={() => setHasClickedStore(true)}
+                                        style={{ color: 'var(--primary)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                    >
                                         Mağazaya Git <ExternalLink size={12} />
                                     </a>
                                 </div>
+                                {hasClickedStore && <span style={{ fontSize: '0.7rem', color: '#4ade80' }}>Tıklandı</span>}
                             </div>
 
                             {/* Adım 3: Sadece katıldıktan sonra kanıt ister */}
@@ -411,23 +508,42 @@ const TestPool = ({ user, credits = 0, onLogout, isAdmin }) => {
                             {joinedApps.find(t => t.appId === testingApp.id) ? (
                                 <button
                                     onClick={() => {
+                                        if (testingApp.status === 'pending_review') {
+                                            setFeedback({ type: 'info', message: "Bu uygulama henüz Google onayında. Geliştirici testi başlattığında kanıt gönderebilirsiniz." });
+                                            return;
+                                        }
                                         const currentTest = joinedApps.find(t => t.appId === testingApp.id);
                                         handleUploadProof(testingApp, currentTest?.id);
                                     }}
                                     className="btn-primary"
-                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                    disabled={uploading || !screenshot}
+                                    style={{
+                                        flex: 2,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        opacity: (testingApp.status === 'pending_review' || uploading || !screenshot) ? 0.5 : 1
+                                    }}
+                                    disabled={uploading || !screenshot || testingApp.status === 'pending_review'}
                                 >
-                                    {uploading ? <Loader2 className="animate-spin" size={18} /> : 'Kanıtı Gönder'}
+                                    {uploading ? <Loader2 className="animate-spin" size={18} /> : (testingApp.status === 'pending_review' ? 'Testin Başlaması Bekleniyor' : 'Kanıtı Gönder')}
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => handleJoinTest(testingApp)}
                                     className="btn-primary"
-                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                    disabled={uploading}
+                                    style={{
+                                        flex: 2,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        opacity: (!hasClickedGroup || !hasClickedStore) ? 0.5 : 1,
+                                        cursor: (!hasClickedGroup || !hasClickedStore) ? 'not-allowed' : 'pointer'
+                                    }}
+                                    disabled={uploading || !hasClickedGroup || !hasClickedStore}
                                 >
-                                    {uploading ? <Loader2 className="animate-spin" size={18} /> : 'Teste Şimdi Başla'}
+                                    {uploading ? <Loader2 className="animate-spin" size={18} /> : ((!hasClickedGroup || !hasClickedStore) ? 'Linklere Tıklayın' : 'Teste Şimdi Başla')}
                                 </button>
                             )}
                         </div>

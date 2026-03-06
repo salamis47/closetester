@@ -71,7 +71,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
                     testDay: 0,
                     testersCount: 0,
                     createdAt: serverTimestamp(),
-                    status: 'active',
+                    status: 'pending_review',
                     reward: 5
                 });
 
@@ -85,7 +85,7 @@ const AddApp = ({ user, onLogout, credits = 0, isAdmin, profile }) => {
                         color: 'var(--primary)',
                         testDay: 0,
                         testersCount: 0,
-                        status: 'active'
+                        status: 'pending_review'
                     })
                 });
             });

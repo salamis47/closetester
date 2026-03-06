@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where, increment, orderBy, setDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, getDoc, where, increment, orderBy, setDoc } from 'firebase/firestore';
 import {
     ShieldAlert, Users, LayoutDashboard, PlayCircle, PlusCircle,
     MessageSquare, Settings, LogOut, Search, Trash2,
-    CheckCircle2, XCircle, DollarSign, TrendingUp, BarChart3, Clock, LifeBuoy
+    CheckCircle2, XCircle, DollarSign, TrendingUp, BarChart3, Clock, LifeBuoy, RotateCcw
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -26,6 +26,8 @@ const AdminPanel = ({ user, onLogout }) => {
     const [confirmDeleteId, setConfirmDeleteId] = useState(null); // Onay bekleyen mesaj ID
     const [confirmDeleteUserId, setConfirmDeleteUserId] = useState(null); // Onay bekleyen kullanıcı ID
     const [confirmDeleteTicketId, setConfirmDeleteTicketId] = useState(null); // Onay bekleyen destek talebi ID
+    const [confirmResetUserId, setConfirmResetUserId] = useState(null);
+    const [confirmResetAppId, setConfirmResetAppId] = useState(null); // Onay bekleyen sıfırlama ID
     const [deleteFeedback, setDeleteFeedback] = useState(''); // Silme geri bildirimi
     const [stats, setStats] = useState({
         totalUsers: 0,
@@ -38,16 +40,20 @@ const AdminPanel = ({ user, onLogout }) => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordMessage, setPasswordMessage] = useState('');
     const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [forceResetEmail, setForceResetEmail] = useState('');
 
     useEffect(() => {
         if (!user) return;
 
         // 1. Tüm kullanıcıları çek
         const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-            const userData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // isDeleted olan kullanıcıları listeden filtrele (zombi koruması)
+            const userData = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(u => !u.isDeleted);
             setUsers(userData);
 
-            // Online kullanıcıları hesapla (Son 10 dk içindeaktif olanlar)
+            // Online kullanıcıları hesapla (Son 10 dk içinde aktif olanlar)
             const tenMinAgo = Date.now() - 10 * 60 * 1000;
             const onlineCount = userData.filter(u => u.lastSeen?.toDate()?.getTime() > tenMinAgo).length;
 
@@ -156,8 +162,27 @@ const AdminPanel = ({ user, onLogout }) => {
             await updateDoc(doc(db, 'users', userId), {
                 credits: increment(amount)
             });
+            setDeleteFeedback(`Kredi başarıyla ${amount > 0 ? 'eklendi' : 'düşüldü'}.`);
+            setTimeout(() => setDeleteFeedback(''), 3000);
         } catch (error) {
-            console.error("Kredi güncelleme hatası:", error);
+            console.error("Kredi güncellenirken hata:", error);
+            setDeleteFeedback('Kredi güncellenirken hata oluştu.');
+            setTimeout(() => setDeleteFeedback(''), 3000);
+        }
+    };
+
+    const handleResetCredits = async (userId) => {
+        try {
+            await updateDoc(doc(db, 'users', userId), {
+                credits: 0
+            });
+            setDeleteFeedback('Kullanıcı bakiyesi 0 olarak sıfırlandı.');
+            setConfirmResetUserId(null);
+            setTimeout(() => setDeleteFeedback(''), 3000);
+        } catch (error) {
+            console.error("Kredi sıfırlanırken hata:", error);
+            setDeleteFeedback('Kredi sıfırlanırken hata oluştu.');
+            setTimeout(() => setDeleteFeedback(''), 3000);
         }
     };
 
@@ -241,12 +266,28 @@ const AdminPanel = ({ user, onLogout }) => {
                 await deleteDoc(doc(db, 'messages', mDoc.id));
             }
 
-            // 4. Kullanıcı dökümanını sil
-            await deleteDoc(doc(db, 'users', userId));
+            // 4. Kara listeden temizle (Tüm varyasyonlar için e-posta ile)
+            const qBlacklist = query(collection(db, 'blacklist'), where('email', '==', userEmail.toLowerCase()));
+            const blacklistSnap = await getDocs(qBlacklist);
+            for (const bDoc of blacklistSnap.docs) {
+                await deleteDoc(doc(db, 'blacklist', bDoc.id));
+            }
 
-            setDeleteFeedback('Kullanıcı ve tüm verileri başarıyla temizlendi.');
+            // 5. isDeleted bayrağını ekle - anlık oturum kapatma için
+            await setDoc(doc(db, 'users', userId), {
+                isDeleted: true,
+                credits: 0,
+                myApps: []
+            }, { merge: true });
+
+            // 6. Firestore dokümanını tamamen sil
+            await deleteDoc(doc(db, 'users', userId));
+            // Not: Silinen kullanıcı tekrar kayıt olabilir (ceza değil, veri temizleme).
+            // Kalıcı engel için "Yasakla" butonu kullanılmalı.
+
+            setDeleteFeedback('Kullanıcı verileri silindi. Kullanıcı geri dönmek isterse "Kayıt Ol" yerine aynı bilgilerle "Giriş Yap" demelidir.');
             setConfirmDeleteUserId(null);
-            setTimeout(() => setDeleteFeedback(''), 3000);
+            setTimeout(() => setDeleteFeedback(''), 5000);
         } catch (error) {
             console.error("Kullanıcı silme hatası:", error);
             setDeleteFeedback("Silme hatası: " + error.message);
@@ -254,6 +295,56 @@ const AdminPanel = ({ user, onLogout }) => {
             setLoading(false);
         }
     };
+
+    const handleForceResetUser = async () => {
+        if (!forceResetEmail || !forceResetEmail.includes('@')) {
+            alert("Lütfen geçerli bir e-posta girin.");
+            return;
+        }
+        if (!window.confirm(`${forceResetEmail} adresine ait TÜM verileri (Kredi, Uygulama, Kara Liste, Kullanıcı Kaydı) kökten silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+
+        setLoading(true);
+        setDeleteFeedback(`${forceResetEmail} için derin temizlik yapılıyor...`);
+        try {
+            const emailClean = forceResetEmail.toLowerCase().trim();
+
+            // 1. Kullanıcıyı e-posta ile bul
+            const qU = query(collection(db, 'users'), where('email', '==', emailClean));
+            const uSnap = await getDocs(qU);
+
+            for (const uDoc of uSnap.docs) {
+                const uid = uDoc.id;
+                // Uygulamaları sil
+                const qAppsArr = query(collection(db, 'apps'), where('ownerId', '==', uid));
+                const appsSnapArr = await getDocs(qAppsArr);
+                for (const appDoc of appsSnapArr.docs) await deleteDoc(doc(db, 'apps', appDoc.id));
+
+                // Testleri sil
+                const qT1 = query(collection(db, 'tests'), where('testerId', '==', uid));
+                const qT2 = query(collection(db, 'tests'), where('ownerId', '==', uid));
+                const [s1, s2] = await Promise.all([getDocs(qT1), getDocs(qT2)]);
+                for (const tDoc of [...s1.docs, ...s2.docs]) await deleteDoc(doc(db, 'tests', tDoc.id));
+
+                // Kullanıcı dökümanını sil
+                await deleteDoc(doc(db, 'users', uid));
+            }
+
+            // 2. Kara listeyi e-posta ile temizle
+            const qB = query(collection(db, 'blacklist'), where('email', '==', emailClean));
+            const bSnap = await getDocs(qB);
+            for (const bDoc of bSnap.docs) await deleteDoc(doc(db, 'blacklist', bDoc.id));
+
+            setDeleteFeedback(`${forceResetEmail} başarıyla tüm sistemden temizlendi. Kullanıcı artık Giriş Yapabilir.`);
+            setForceResetEmail('');
+            setTimeout(() => setDeleteFeedback(''), 5000);
+        } catch (error) {
+            console.error("Sıfırlama hatası:", error);
+            setDeleteFeedback("Hata: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     const handleRemoveBlacklist = async (id) => {
         if (!window.confirm("Bu kullanıcının bekleme süresi cezasını kaldırmak istediğinize emin misiniz?")) return;
@@ -265,6 +356,7 @@ const AdminPanel = ({ user, onLogout }) => {
             console.error("Ceza kaldırma hatası:", error);
         }
     };
+
 
     const handleDeleteMessage = async (msgId) => {
         if (!msgId || isDeleting) return;
@@ -303,6 +395,46 @@ const AdminPanel = ({ user, onLogout }) => {
             await deleteDoc(doc(db, 'apps', appId));
         } catch (error) {
             console.error("Uygulama silme hatası:", error);
+        }
+    };
+
+    const handleResetApp = async (app) => {
+        setLoading(true);
+        try {
+            // 1. Uygulama dökümanını güncelle
+            const appRef = doc(db, 'apps', app.id);
+            await updateDoc(appRef, {
+                status: 'pending_review',
+                testersCount: 0
+            });
+
+            // 2. Bu uygulamaya ait tüm testleri sil
+            const qTests = query(collection(db, 'tests'), where('appId', '==', app.id));
+            const testsSnap = await getDocs(qTests);
+            for (const tDoc of testsSnap.docs) {
+                await deleteDoc(tDoc.ref);
+            }
+
+            // 3. Sahibinin myApps listesini güncelle (Kullanıcı dökümanındaki cache)
+            const ownerRef = doc(db, 'users', app.ownerId);
+            const ownerSnap = await getDoc(ownerRef);
+
+            if (ownerSnap.exists()) {
+                const userData = ownerSnap.data();
+                const updatedMyApps = (userData.myApps || []).map(a => {
+                    if (a.id === app.id) return { ...a, status: 'pending_review', testersCount: 0 };
+                    return a;
+                });
+                await updateDoc(ownerRef, { myApps: updatedMyApps });
+            }
+
+            alert("Uygulama başarıyla sıfırlandı! Artık yeni sistemle (pending_review) başlayacak.");
+            setConfirmResetAppId(null);
+        } catch (error) {
+            console.error("Sıfırlama hatası:", error);
+            alert("Hata: " + error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -456,8 +588,36 @@ const AdminPanel = ({ user, onLogout }) => {
                     {activeTab === 'users' && (
                         <div>
                             <h3 style={{ marginBottom: '0.5rem' }}>Kullanıcı Yönetimi</h3>
+
+                            {/* Derin Temizlik Aracı */}
+                            <div className="glass" style={{ padding: '1rem', marginBottom: '1.5rem', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
+                                <h4 style={{ fontSize: '0.9rem', color: '#f87171', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <ShieldAlert size={16} /> Kullanıcıyı Sistemden Tamamen Temizle (Deep Clean)
+                                </h4>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <input
+                                        type="email"
+                                        placeholder="Temizlenecek e-posta (örn: aysinirmak74@gmail.com)"
+                                        value={forceResetEmail}
+                                        onChange={e => setForceResetEmail(e.target.value)}
+                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
+                                    />
+                                    <button
+                                        onClick={handleForceResetUser}
+                                        disabled={loading}
+                                        className="btn-primary"
+                                        style={{ background: '#ef4444', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                                    >
+                                        {loading ? '...' : 'TÜMÜNÜ SİL'}
+                                    </button>
+                                </div>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                    Bu araç, kullanıcı listede görünmese bile (zombi kayıtlar) e-posta üzerinden tüm Firestore ve Blacklist kayıtlarını bulup siler.
+                                </p>
+                            </div>
+
                             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1.5rem' }}>
-                                Not: Buradan bir kullanıcıyı silmek sadece verilerini (kredi, uygulama vb.) temizler. Kullanıcı aynı şifreyle tekrar "Giriş" yaparsa sistemi sıfırdan başlar. Tamamen engellemek için "Yasakla" butonunu kullanın.
+                                Not: Buradan bir kullanıcıyı silmek verilerini (kredi, uygulama vb.) temizler ancak giriş izni (Auth) silinmez. Kullanıcı aynı bilgilerle tekrar "Giriş Yap" butonunu kullanırsa sistemi sıfırdan başlar. Tamamen engellemek için "Yasakla" butonunu kullanın.
                             </p>
                             <div style={{ overflowX: 'auto' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -489,6 +649,31 @@ const AdminPanel = ({ user, onLogout }) => {
                                                         <button onClick={() => handleUpdateUserCredits(u.id, 5)} style={{ padding: '4px 8px', background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>+5</button>
                                                         <button onClick={() => handleUpdateUserCredits(u.id, -5)} style={{ padding: '4px 8px', background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>-5</button>
                                                         <button onClick={() => handleUpdateUserCredits(u.id, -10)} style={{ padding: '4px 8px', background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>-10</button>
+
+                                                        {confirmResetUserId === u.id ? (
+                                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                                <button
+                                                                    onClick={() => handleResetCredits(u.id)}
+                                                                    style={{ background: '#eab308', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                                                                >
+                                                                    EVET
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setConfirmResetUserId(null)}
+                                                                    style={{ background: '#4b5563', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                                                                >
+                                                                    İPTAL
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => setConfirmResetUserId(u.id)}
+                                                                style={{ padding: '4px 8px', background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}
+                                                            >
+                                                                Sıfırla
+                                                            </button>
+                                                        )}
+
                                                         <button onClick={() => handleBanUser(u.id, u.isBanned)} style={{ padding: '4px 8px', background: u.isBanned ? 'rgba(74, 222, 128, 0.1)' : 'rgba(248, 113, 113, 0.1)', color: u.isBanned ? '#4ade80' : '#f87171', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>
                                                             {u.isBanned ? 'Yasağı Kaldır' : 'Yasakla'}
                                                         </button>
@@ -544,9 +729,37 @@ const AdminPanel = ({ user, onLogout }) => {
                                     <div key={app.id} className="glass" style={{ padding: '1.25rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                                             <div style={{ fontSize: '1.5rem' }}>{app.icon || '📱'}</div>
-                                            <button onClick={() => handleDeleteApp(app.id)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer' }}>
-                                                <Trash2 size={18} />
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                {confirmResetAppId === app.id ? (
+                                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                                        <button
+                                                            onClick={() => { handleResetApp(app); setConfirmResetAppId(null); }} // Call handleResetApp and clear confirmation
+                                                            disabled={loading}
+                                                            style={{ background: '#fbbf24', color: 'black', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                                                        >
+                                                            {loading ? '...' : 'SIFIRLA'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setConfirmResetAppId(null)}
+                                                            style={{ background: '#4b5563', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                                                        >
+                                                            İPTAL
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setConfirmResetAppId(app.id)}
+                                                        disabled={loading}
+                                                        style={{ color: '#fbbf24', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                        title="Yeni Sistem İçin Sıfırla"
+                                                    >
+                                                        <RotateCcw size={18} />
+                                                    </button>
+                                                )}
+                                                <button onClick={() => handleDeleteApp(app.id)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
                                         </div>
                                         <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{app.name}</div>
                                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Sahip: {app.ownerName}</div>

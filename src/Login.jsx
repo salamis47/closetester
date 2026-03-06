@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { auth, googleProvider } from './firebase';
+import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp, getDocs, collection, query, where } from 'firebase/firestore';
 
 const Login = ({ onLogin }) => {
     const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -76,7 +77,7 @@ const Login = ({ onLogin }) => {
 
     const getErrorMessage = (code) => {
         const messages = {
-            'auth/email-already-in-use': 'Bu e-posta zaten kullanımda. Eğer daha önce verilerini sildiyseniz bile, lütfen aynı şifreyle "Giriş Yap" butonunu kullanarak devam edin.',
+            'auth/email-already-in-use': 'Bu e-posta zaten kullanımda. Eğer daha önce hesabınızı sildiyseniz bile, aynı şifreyle "Giriş Yap" butonunu kullanarak tekrar giriş yapabilirsiniz. Bu durumda hesabınız otomatik olarak yeniden oluşturulacaktır.',
             'auth/invalid-email': 'Geçersiz e-posta adresi.',
             'auth/user-not-found': 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.',
             'auth/wrong-password': 'Hatalı şifre.',
@@ -199,6 +200,15 @@ const Login = ({ onLogin }) => {
                     {error && (
                         <div style={{ background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: '0.5rem', padding: '0.75rem 1rem', color: '#ff6b6b', fontSize: '0.9rem', marginBottom: '1rem' }}>
                             {error}
+                            {error.includes('zaten kullanımda') && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setMode('login'); setError(''); }}
+                                    style={{ display: 'block', marginTop: '0.75rem', padding: '0.5rem', width: '100%', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.4rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    ŞİMDİ GİRİŞ YAP'A GİT
+                                </button>
+                            )}
                         </div>
                     )}
 

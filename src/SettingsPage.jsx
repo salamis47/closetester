@@ -77,7 +77,7 @@ const SettingsPage = ({ user, onLogout, credits = 0, isAdmin, profile: globalPro
             const uid = user.uid;
             // 0. Kara Listeye Ekle (14 Günlük Engelleme İçin)
             await setDoc(doc(db, 'blacklist', uid), {
-                email: user.email,
+                email: user.email.toLowerCase(),
                 deletedAt: serverTimestamp(),
                 reason: "Self-deletion",
                 status: 'active'

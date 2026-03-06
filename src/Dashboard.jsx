@@ -144,44 +144,18 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin, profi
         };
     }, [user]);
 
-    const handleApproveTest = async (test) => {
+    // handleApproveTest and handleRejectTest removed for new AI system
+
+    const handleStartTest = async (appId) => {
+        if (!window.confirm("Google Play Console onayınız geldiyse testi başlatabilirsiniz. Onaylıyor musunuz?")) return;
         try {
-            // 1. Test durumunu güncelle
-            await updateDoc(doc(db, 'tests', test.id), {
-                status: 'approved',
-                approvedAt: new Date()
+            await updateDoc(doc(db, 'apps', appId), {
+                status: 'active'
             });
-
-            // 2. Tester'a kredisini ver
-            const testerRef = doc(db, 'users', test.testerId);
-            await updateDoc(testerRef, {
-                credits: increment(test.reward || 5)
-            });
-
-            // 3. Uygulamanın tester sayısını artır
-            const appRef = doc(db, 'apps', test.appId);
-            await updateDoc(appRef, {
-                testersCount: increment(1)
-            });
-
-            alert("Test onaylandı ve krediler gönderildi!");
-            setSelectedTest(null);
+            alert("Test süreci başarıyla başlatıldı! Artık havuzda görünecek.");
         } catch (error) {
-            console.error("Test onaylama hatası:", error);
+            console.error("Test başlatma hatası:", error);
             alert("Bir hata oluştu.");
-        }
-    };
-
-    const handleRejectTest = async (testId) => {
-        if (!window.confirm("Bu testi reddetmek istediğinize emin misiniz?")) return;
-        try {
-            await updateDoc(doc(db, 'tests', testId), {
-                status: 'rejected',
-                rejectedAt: new Date()
-            });
-            setSelectedTest(null);
-        } catch (error) {
-            console.error("Test reddetme hatası:", error);
         }
     };
 
@@ -228,15 +202,18 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin, profi
                 {incomingTests.length > 0 && (
                     <section style={{ marginBottom: '3rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                            <div style={{ width: '10px', height: '10px', background: '#fbbf24', borderRadius: '50%' }}></div>
-                            <h3>Onay Bekleyen Testler ({incomingTests.length})</h3>
+                            <div style={{ width: '10px', height: '10px', background: '#3b82f6', borderRadius: '50%' }}></div>
+                            <h3>Uygulamalarını Test Edenler ({incomingTests.length})</h3>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                             {incomingTests.map(test => (
                                 <div key={test.id} className="glass" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
                                     <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{test.testerName}</div>
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{test.appName} uygulamanı test etti.</p>
-                                    <button onClick={() => setSelectedTest(test)} className="btn-primary" style={{ width: '100%', fontSize: '0.85rem' }}>Kanıtı Gör & Onayla</button>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{test.appName} uygulamasını test ediyor.</p>
+                                    <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', marginBottom: '0.5rem' }}>
+                                        <div style={{ width: `${((test.proofCount || 0) / 14) * 100}%`, height: '100%', background: '#3b82f6', borderRadius: '3px', transition: 'width 0.3s ease' }}></div>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>İlerleme: {test.proofCount || 0}/14 Gün</div>
                                 </div>
                             ))}
                         </div>
@@ -267,7 +244,13 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin, profi
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div className="glass" style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.8rem', color: '#4ade80', background: 'rgba(74, 222, 128, 0.1)' }}>{app.status === 'active' ? 'Aktif' : 'Tamamlandı'}</div>
+                                        {app.status === 'pending_review' ? (
+                                            <button onClick={() => handleStartTest(app.id)} className="btn-primary" style={{ padding: '0.5rem 1rem', background: '#fbbf24', color: 'black' }}>Testi Başlat 🚀</button>
+                                        ) : (
+                                            <div className="glass" style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.8rem', color: app.status === 'active' ? '#4ade80' : 'var(--text-muted)', background: 'rgba(74, 222, 128, 0.1)' }}>
+                                                {app.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                                            </div>
+                                        )}
                                         <button onClick={() => setSelectedApp(app)} className="btn-outline" style={{ padding: '0.5rem 1rem' }}>Detaylar</button>
                                     </div>
                                 </div>
@@ -279,43 +262,7 @@ const Dashboard = ({ user, credits = 120, onLogout, onAddCredits, isAdmin, profi
 
             {selectedApp && <AppDetailModal app={selectedApp} onClose={() => setSelectedApp(null)} />}
 
-            {selectedTest && (
-                <div style={{
-                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
-                }}>
-                    <div className="glass" style={{ width: '100%', maxWidth: '500px', padding: '2rem', borderRadius: '1.5rem', position: 'relative' }}>
-                        <button onClick={() => setSelectedTest(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                            <X size={20} />
-                        </button>
 
-                        <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>Test Kanıtını İncele</h3>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Gönderen: <strong>{selectedTest.testerName}</strong></div>
-                                {selectedTest.aiVerified ? (
-                                    <div style={{ background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid rgba(74, 222, 128, 0.2)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                        <CheckCircle2 size={14} /> AI Onaylı
-                                    </div>
-                                ) : (
-                                    <div style={{ background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid rgba(248, 113, 113, 0.2)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                        <Clock size={14} /> Manuel Kontrol Gerekli
-                                    </div>
-                                )}
-                            </div>
-                            <div style={{ width: '100%', maxHeight: '350px', overflow: 'hidden', borderRadius: '1rem', border: '1px solid var(--glass-border)' }}>
-                                <img src={selectedTest.screenshotUrl} alt="Screenshot Evidence" style={{ width: '100%', display: 'block' }} />
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={() => handleRejectTest(selectedTest.id)} className="btn-outline" style={{ flex: 1, color: '#ff6b6b' }}>Reddet</button>
-                            <button onClick={() => handleApproveTest(selectedTest)} className="btn-primary" style={{ flex: 2 }}>Onayla & Krediyi Gönder</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

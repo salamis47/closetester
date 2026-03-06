@@ -62,100 +62,162 @@ const LandingPage = () => (
         </div>
       </section>
 
-      <section style={{ padding: '4rem 1rem', maxWidth: '900px', margin: '0 auto' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '3rem', fontSize: '2.5rem' }}>Sistem Nasıl Çalışır?</h2>
+      <section style={{ padding: '6rem 1rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '4rem', fontSize: '2.5rem' }}>Sistem Nasıl Çalışır?</h2>
 
-        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', marginBottom: '2rem', borderLeft: '4px solid var(--primary)' }}>
-          <h3 style={{ color: 'var(--primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-            🎯 Platformun Amacı
-          </h3>
-          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-            Google Play Store, yeni geliştiricilerin uygulamalarını yayınlamadan önce <strong>14 gün boyunca aralıksız en az 12 farklı kullanıcı</strong> tarafından test edilmesini şart koşar. PlayTester Community, geliştiricilerin bir araya gelerek birbirlerinin uygulamalarını test ettiği, bu sayede herkesin engelleri ücretsiz ve güvenli bir şekilde aşmasını sağlayan yardımlaşma kapısıdır.
-          </p>
+        <style>
+          {`
+            .zigzag-row { display: flex; align-items: center; gap: 4rem; margin-bottom: 5rem; }
+            .zigzag-row.reverse { flex-direction: row-reverse; }
+            .zigzag-content { flex: 1; }
+            .zigzag-image { flex: 0.8; display: flex; justify-content: center; position: relative; }
+            .zigzag-icon { 
+              width: 140px; height: 140px; 
+              background: rgba(255, 255, 255, 0.03); 
+              border-radius: 50%; 
+              display: flex; align-items: center; justify-content: center; 
+              font-size: 4rem; 
+              box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.1); 
+              position: relative;
+              z-index: 2;
+            }
+            .glow-effect {
+              position: absolute;
+              width: 100%; height: 100%;
+              border-radius: 50%;
+              filter: blur(40px);
+              z-index: 1;
+              opacity: 0.4;
+            }
+            .step-badge {
+              display: inline-block; padding: 0.25rem 0.75rem; 
+              border-radius: 2rem; font-size: 0.8rem; font-weight: bold; 
+              margin-bottom: 1rem;
+              background: rgba(255,255,255,0.1);
+            }
+            @media (max-width: 768px) {
+              .zigzag-row, .zigzag-row.reverse { flex-direction: column; text-align: center; gap: 2rem; margin-bottom: 4rem; }
+              .zigzag-image { order: -1; } /* Always show image first on mobile */
+              .step-badge { margin-left: auto; margin-right: auto; }
+            }
+          `}
+        </style>
+
+        {/* 1. Step: Kurulum & Topluluk */}
+        <div className="zigzag-row">
+          <div className="zigzag-content">
+            <div className="step-badge" style={{ color: '#06b6d4', background: 'rgba(6, 182, 212, 0.1)' }}>1. ADIM</div>
+            <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>Topluluk Grubu Stresine Son</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', fontSize: '1.1rem', marginBottom: '1rem' }}>
+              Test kullanıcılarını toplamak için kendi grubunuzu kurmanız gerekmez. Platformun sunduğu <strong>Ortak Topluluk Grubunu</strong> (playtester_community_tr@googlegroups.com) Play Console'a ekleyin. Havuzdaki herkes uygulamanıza tek tıkla entegre olsun.
+            </p>
+          </div>
+          <div className="zigzag-image">
+            <div className="glow-effect" style={{ background: '#06b6d4' }}></div>
+            <div className="zigzag-icon">👥</div>
+          </div>
         </div>
 
-        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', marginBottom: '2rem', borderLeft: '4px solid #a855f7' }}>
-          <h3 style={{ color: '#a855f7', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-            📢 Topluluk Grubu Sistemi
-          </h3>
-          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
-            Kendi Google Grubu'nuzu kurmak ve yönetmekle uğraşmak istemiyor musunuz? Platformumuzun size özel sunduğu <strong>Ortak Topluluk Grubu</strong> ile süreci hızlandırın:
-          </p>
-          <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
-            <li style={{ marginBottom: '0.5rem' }}><strong>Hazır Altyapı:</strong> Uygulama eklerken tek tıkla topluluk grubumuzu seçebilirsiniz.</li>
-            <li style={{ marginBottom: '0.5rem' }}><strong>Geniş Erişim:</strong> Binlerce tester'ın zaten üye olduğu bu grubu kullanarak tester bulma aşamasını saniyelere indirin.</li>
-            <li><strong>Kolay Kurulum:</strong> Play Console'da tek bir e-posta adresini (playtester_community_tr@googlegroups.com) eklemeniz yeterlidir.</li>
-          </ul>
+        {/* 2. Step: Senkronizasyon (Pending Review) */}
+        <div className="zigzag-row reverse">
+          <div className="zigzag-content">
+            <div className="step-badge" style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.1)' }}>2. ADIM</div>
+            <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>Play Store Onay Senkronizasyonu</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', fontSize: '1.1rem', marginBottom: '1rem' }}>
+              Uygulamanız Google tarafından onaylanıp teste açılana kadar süreci donduruyoruz. Test kullanıcıları havuzunuzda toplanır ancak siz panelinizden <strong>"Testi Başlat"</strong> diyene kadar kimse sistemden kanıt yollayıp süreci başlatamaz. 14 günlük zorunlu takvimi tam siz istediğiniz an başlatırız.
+            </p>
+          </div>
+          <div className="zigzag-image">
+            <div className="glow-effect" style={{ background: '#fbbf24' }}></div>
+            <div className="zigzag-icon">⏳</div>
+          </div>
         </div>
 
-        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', marginBottom: '2rem', borderLeft: '4px solid #06b6d4' }}>
-          <h3 style={{ color: '#06b6d4', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-            🛠️ Google Play Console Kurulumu (Nasıl Eklenir?)
-          </h3>
-          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1.5rem' }}>
-            Topluluk grubumuzu kullanmak için Play Console panelinizde şu basit 3 adımı yapmanız yeterlidir:
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-            <div className="glass" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)' }}>
-              <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem' }}>1. Adım</div>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Play Console'da <strong>"Test" &gt; "Kapalı Test"</strong> bölümüne gidin ve ilgili kanalı yönetin.</p>
-            </div>
-            <div className="glass" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)' }}>
-              <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem' }}>2. Adım</div>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}><strong>"Test Kullanıcıları"</strong> sekmesine tıklayın ve "E-posta Listesi Oluştur" deyin.</p>
-            </div>
-            <div className="glass" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)' }}>
-              <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem' }}>3. Adım</div>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Grup e-postasını ekleyin: <br /><code style={{ color: 'var(--primary)', wordBreak: 'break-all', display: 'block', marginTop: '0.5rem' }}>playtester_community_tr@googlegroups.com</code></p>
+        {/* 3. Step: AI ve Hile Koruması */}
+        <div className="zigzag-row">
+          <div className="zigzag-content">
+            <div className="step-badge" style={{ color: '#4ade80', background: 'rgba(74, 222, 128, 0.1)' }}>3. ADIM</div>
+            <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>Yapay Zeka (AI) Doğrulaması</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', fontSize: '1.1rem', marginBottom: '1rem' }}>
+              Eski tip manuel ekran görüntüsü onaylamalarına veda edin. Test eden kişilerin gönderdiği her ekran görüntüsü <strong>Tesseract AI Motoru</strong> tarafından OCR ile okunur. Yapay zeka, uygulamanızın ismini görselde bulur ve onayı otomatik verir. Sahte veya eski fotoğraflar anında reddedilir.
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+              <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.8rem', borderRadius: '1rem' }}>Kriptografik Görsel Hash'leme</span>
+              <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.8rem', borderRadius: '1rem' }}>24 Saat Zaman Damgası Kontrolü</span>
             </div>
           </div>
-          <p style={{ marginTop: '1.5rem', fontSize: '0.95rem', color: '#fbbf24', fontStyle: 'italic' }}>
-            * Not: Google Grubu'nun console'a eklendikten sonra yayına alınması (review) gerekebilir. Bu normal bir süreçtir.
-          </p>
+          <div className="zigzag-image">
+            <div className="glow-effect" style={{ background: '#4ade80' }}></div>
+            <div className="zigzag-icon">🤖</div>
+          </div>
         </div>
 
-        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', marginBottom: '2rem', borderLeft: '4px solid #fbbf24' }}>
-          <h3 style={{ color: '#fbbf24', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-            💰 Kredi ve Ödül Sistemi
-          </h3>
-          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
-            Sistem tamamen <strong>Kredi (Puan)</strong> mantığıyla çalışır. Sistemi ayakta tutan şey birbirimize sağladığımız karşılıklı katkıdır:
-          </p>
-          <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
-            <li style={{ marginBottom: '0.5rem' }}><strong>Başlangıç Hediyesi:</strong> Kayıt olan her kullanıcılara ilk desteğini alıp verebilmesi için başlangıç kredisi tanımlanır.</li>
-            <li style={{ marginBottom: '0.5rem' }}><strong>Uygulama Eklerken:</strong> Kendi uygulamanızı test havuzuna eklediğinizde, test edecek kişilere dağıtılmak üzere kendi bakiyenizden belli bir kredi ayırırsınız.</li>
-            <li><strong>Test Ederken:</strong> Havuzdaki başka geliştiricilerin uygulamalarını test ederek her gün kendi bakiyenizi artırırsınız (Kredi Kazanırsınız).</li>
-          </ul>
+        {/* 4. Step: Kredi ve Ödül */}
+        <div className="zigzag-row reverse">
+          <div className="zigzag-content">
+            <div className="step-badge" style={{ color: '#a855f7', background: 'rgba(168, 85, 247, 0.1)' }}>4. ADIM</div>
+            <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>Otomatik Kredi ve Ödül Sistemi</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', fontSize: '1.1rem', marginBottom: '1rem' }}>
+              Testerlar 14 gün boyunca her gün uygulamayı açar ve AI destekli panele kanıt düşer. Günlük görev tamamlandıkça krediler testerların hesaplarına <strong>otomatik yatar</strong>. Siz arkanıza yaslanırsınız, 14 gün bittiğinde uygulamanız yayınlamaya hazır hale gelir!
+            </p>
+          </div>
+          <div className="zigzag-image">
+            <div className="glow-effect" style={{ background: '#a855f7' }}></div>
+            <div className="zigzag-icon">💎</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Ek Bilgilendirme ve Kurallar Bölümü (Zigzag) */}
+      <section style={{ padding: '0 1rem 6rem 1rem', maxWidth: '1000px', margin: '0 auto' }}>
+
+        {/* 5. Step: Google Konsol Kurulumu */}
+        <div className="zigzag-row">
+          <div className="zigzag-content">
+            <div className="step-badge" style={{ color: '#06b6d4', background: 'rgba(6, 182, 212, 0.1)' }}>5. ADIM</div>
+            <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>Play Console Kurulumu (3 Basit Adım)</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', fontSize: '1.1rem', marginBottom: '1.5rem' }}>
+              Topluluk grubumuzu kullanmak ve havuzdaki testerları uygulamanıza entegre etmek için Play Console panelinizde şu işlemleri yapmanız yeterlidir:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.75rem', borderLeft: '3px solid #06b6d4' }}>
+                <strong style={{ color: '#06b6d4' }}>1. Adım:</strong> Play Console'da <strong>"Test" &gt; "Kapalı Test"</strong> bölümüne gidin ve ilgili kanalı yönetin.
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.75rem', borderLeft: '3px solid #06b6d4' }}>
+                <strong style={{ color: '#06b6d4' }}>2. Adım:</strong> <strong>"Test Kullanıcıları"</strong> sekmesine tıklayın ve "E-posta Listesi Oluştur" deyin.
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.75rem', borderLeft: '3px solid #06b6d4' }}>
+                <strong style={{ color: '#06b6d4' }}>3. Adım:</strong> E-posta listesine şunu ekleyin: <br />
+                <code style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.4rem 0.8rem', background: 'rgba(0,0,0,0.3)', borderRadius: '0.5rem', color: '#06b6d4' }}>playtester_community_tr@googlegroups.com</code>
+              </div>
+            </div>
+          </div>
+          <div className="zigzag-image">
+            <div className="glow-effect" style={{ background: '#06b6d4' }}></div>
+            <div className="zigzag-icon">⚙️</div>
+          </div>
         </div>
 
-        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', borderLeft: '4px solid #10b981' }}>
-          <h3 style={{ color: '#10b981', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-            🔄 14 Günlük Kontrollü Süreç
-          </h3>
-          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
-            Sistemin Play Store onayında sorun yaşamaması için disiplin şarttır:
-          </p>
-          <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
-            <li style={{ marginBottom: '0.5rem' }}>Test sürecine katılarak uygulamayı telefonunuza indirdiğinizde, 14 gün boyunca <strong>her gün</strong> panele girerek AI tarafından doğrulanan bir onay (kanıt) göndermelisiniz.</li>
-            <li style={{ marginBottom: '0.5rem' }}>Sistemdeki Yapay Zeka anlık olarak kontrolü sağlar ve o günkü ilerlemenizi onaylayıp günlük ödülünüzü yansıtır.</li>
-            <li><strong>Hatırlatma:</strong> 14 günü tamamlamadan testi bırakmak veya uygulamayı silmek ceza puanı almanıza veya sistemden uzaklaştırılmanıza neden olabilir.</li>
-            <li>14 gün kesintisiz tamamlandığında büyük ödül hesaba geçer ve uygulama sahibi Play Store Console'daki zorunluluğu güvenle doldurmuş olur.</li>
-          </ul>
+        {/* 6. Step: Kurallar ve Cezalar */}
+        <div className="zigzag-row reverse">
+          <div className="zigzag-content">
+            <div className="step-badge" style={{ color: '#f87171', background: 'rgba(248, 113, 113, 0.1)' }}>ÖNEMLİ KURALLAR</div>
+            <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>Adil Kullanım ve Cezalar</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', fontSize: '1.1rem', marginBottom: '1.5rem' }}>
+              Topluluğun emeğini korumak için katı kurallarımız vardır. 14 günü tamamlamadan testi bırakmak veya uygulamayı silmek ceza puanı almanıza neden olur.
+            </p>
+            <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.2rem', fontSize: '1.05rem' }}>
+              <li style={{ marginBottom: '0.8rem' }}><strong>Hesap Silme:</strong> Kuralları aşmak amacıyla hesabını silenler 14 gün boyunca aynı e-posta ile kayıt olamazlar.</li>
+              <li style={{ marginBottom: '0.8rem' }}><strong>Yanıltıcı Kanıt:</strong> Sahte veya alakasız ekran görüntüsü gönderen hesaplar süresiz yasaklanabilir.</li>
+              <li>Süreç kesintisiz tamamlandığında testerlar büyük ödüllerini alır, geliştirici Play Store onayını sorunsuz alır. Birlikte kazanırız!</li>
+            </ul>
+          </div>
+          <div className="zigzag-image">
+            <div className="glow-effect" style={{ background: '#f87171' }}></div>
+            <div className="zigzag-icon">⚖️</div>
+          </div>
         </div>
 
-        <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', borderLeft: '4px solid #f87171' }}>
-          <h3 style={{ color: '#f87171', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-            🚫 Adil Kullanım ve Ceza Sistemi
-          </h3>
-          <p style={{ lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
-            Topluluğun güvenliğini ve yardımlaşmanın sürekliliğini korumak amacıyla katı bir <strong>Anti-Suistimal</strong> politikası uygulanır:
-          </p>
-          <ul style={{ lineHeight: '1.7', color: 'var(--text-muted)', marginLeft: '1.5rem', fontSize: '1.05rem' }}>
-            <li style={{ marginBottom: '0.5rem' }}><strong>Hesap Silme Cezası:</strong> Sistemdeki kuralları aşmak veya verileri temizlemek amacıyla hesabını silen kullanıcılar 14 gün boyunca aynı bilgilerle (e-posta vb.) tekrar kayıt olamazlar.</li>
-            <li style={{ marginBottom: '0.5rem' }}><strong>Yanıltıcı Kanıtlar:</strong> Sahte ekran görüntüsü veya alakasız kanıt gönderen hesaplar, admin incelemesi sonrası kalıcı olarak yasaklanabilir.</li>
-            <li><strong>Dürüstlük İlkesi:</strong> Bu platform geliştiricilerin birbirine zaman ayırdığı bir yerdir. Başkasının emeğine saygı göstermeyenler topluluktan uzaklaştırılır.</li>
-          </ul>
-        </div>
       </section>
     </main >
 
@@ -225,44 +287,56 @@ function App() {
 
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid);
+
         unsubFirestore = onSnapshot(userRef, async (docSnap) => {
-          try {
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              setCredits(data.credits || 0);
-              setMyApps(data.myApps || []);
-              setIsBanned(data.isBanned || false);
-              setProfileData({
-                name: data.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
-                bio: data.bio || ''
-              });
-              localStorage.setItem('user_credits', data.credits || 0);
-            } else {
-              // Karaliste kontrolü
-              const blacklistRef = collection(db, 'blacklist');
-              const qB = query(blacklistRef, where('email', '==', firebaseUser.email), where('status', '==', 'active'));
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+
+            // Eğer admin tarafından silinmişse anında oturumu kapat
+            if (data.isDeleted) {
+              logOut();
+              return;
+            }
+
+            setCredits(data.credits || 0);
+            setMyApps(data.myApps || []);
+            setIsBanned(data.isBanned || false);
+            setProfileData({
+              name: data.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
+              bio: data.bio || ''
+            });
+            localStorage.setItem('user_credits', data.credits || 0);
+          } else {
+            // Belge yoksa veya silinmişse otomatik oluşturmayı dene (Sadece bir kez)
+            try {
+              console.log("Kullanıcı kaydı eksik, oluşturuluyor...");
+              // Karaliste kontrolü (küçük harf ile)
+              const qB = query(collection(db, 'blacklist'), where('email', '==', firebaseUser.email.toLowerCase()), where('status', '==', 'active'));
               const bSnap = await getDocs(qB);
 
-              if (!bSnap.empty) {
-                const bDoc = bSnap.docs[0].data();
-                setBlacklistData({ ...bDoc, id: bSnap.docs[0].id });
-              } else {
-                // Yeni kullanıcı oluştur
+              if (bSnap.empty) {
                 await setDoc(userRef, {
                   credits: 20,
                   myApps: [],
                   isBanned: false,
-                  email: firebaseUser.email,
+                  email: firebaseUser.email.toLowerCase(),
                   displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0],
                   lastSeen: serverTimestamp(),
                   createdAt: serverTimestamp()
                 });
+              } else {
+                // Eğer kara listedeyse oturumu kapat
+                console.log("Kullanıcı kara listede, erişim reddedildi.");
+                logOut();
               }
+            } catch (err) {
+              console.error("Otomatik kullanıcı oluşturma hatası:", err);
             }
-          } catch (err) {
-            console.error("User data sync error:", err);
           }
+        }, (err) => {
+          console.error("User data sync error:", err);
         });
+
       } else {
         setCredits(0);
         setMyApps([]);
